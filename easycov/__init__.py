@@ -3,7 +3,7 @@
 import lcovparse
 import os
 
-def parse_file(filename, root_dir=None):
+def lcov_to_json(filename, root_dir=None):
   with open(filename, 'r') as f:
     json_cov = lcovparse.lcovparse(f.read())
     if root_dir:
