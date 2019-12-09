@@ -42,7 +42,7 @@ class BasicTests(unittest.TestCase):
 
   def test_xml_to_json(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.xml_to_json(os.path.join(path, "coverage.xml"))
+    result = easycov.xml_to_json(os.path.join(path, "coverage.xml"), "/foo")
     expected_file = os.path.join(path, "coverage.xml.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
