@@ -22,7 +22,7 @@ class BasicTests(unittest.TestCase):
 
   def test_lcov_to_json(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.lcov_to_json(os.path.join(path, "pcb2gcode-lcov.info"))
+    result = easycov.parse_coverage.lcov_to_json(os.path.join(path, "pcb2gcode-lcov.info"))
     expected_file = os.path.join(path, "pcb2gcode-lcov.info.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
@@ -31,7 +31,7 @@ class BasicTests(unittest.TestCase):
 
   def test_lcov_to_json_with_root(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.lcov_to_json(
+    result = easycov.parse_coverage.lcov_to_json(
         os.path.join(path, "one-lcov.info"),
         "/home/runner/work/pcb2gcode/pcb2gcode")
     expected_file = os.path.join(path, "one-lcov.info.json")
@@ -42,7 +42,7 @@ class BasicTests(unittest.TestCase):
 
   def test_xml_to_json(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.xml_to_json(os.path.join(path, "coverage.xml"), "/foo")
+    result = easycov.parse_coverage.xml_to_json(os.path.join(path, "coverage.xml"), "/foo")
     expected_file = os.path.join(path, "coverage.xml.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
