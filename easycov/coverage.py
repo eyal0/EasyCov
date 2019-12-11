@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 from __future__ import division
+from __future__ import print_function
 import lcovparse
 import os
 import xml.etree.ElementTree as ET
@@ -8,6 +9,7 @@ import re
 from collections import defaultdict
 from fractions import Fraction
 import json
+import pkg_resources
 
 def _relative_filename(filename, root_dir):
   if not root_dir:
@@ -20,6 +22,7 @@ def _relative_filename(filename, root_dir):
 class Coverage(object):
   def __init__(self):
     self._coverage = defaultdict(lambda: defaultdict(Fraction))
+    self._version = pkg_resources.require("EasyCov")[0].version
 
   @staticmethod
   def from_lcov(filename, root_dir=None):
@@ -29,8 +32,8 @@ class Coverage(object):
     for f in json_cov:
       for line in f['lines']:
         filename = _relative_filename(f['file'], root_dir)
-        result._coverage[filename][line['line']] = max(
-            result._coverage[filename][line['line']],
+        result._coverage[filename][int(line['line'])] = max(
+            result._coverage[filename][int(line['line'])],
             min(line['hit'], 0))
     return result
 
@@ -51,15 +54,17 @@ class Coverage(object):
           # This is a branch line
           condition_coverage = line.get('condition-coverage')
           m = re.match('\d+%\s+\((\d+)/(\d+)\)', condition_coverage)
-          result._coverage[filename][line.get('number')] = max(
-              result._coverage[filename][line.get('number')],
+          result._coverage[filename][int(line.get('number'))] = max(
+              result._coverage[filename][int(line.get('number'))],
               Fraction(int(m.group(1)), int(m.group(2))))
         else:
-          result._coverage[filename][line.get('number')] = max(
-              result._coverage[filename][line.get('number')],
+          result._coverage[filename][int(line.get('number'))] = max(
+              result._coverage[filename][int(line.get('number'))],
               int(line.get('hits', 0)))
     return result
 
   def to_json(self, *args, **kwargs):
     """Returns the coverage as a json string."""
-    return json.dumps(self._coverage, default=lambda x: float(x), *args, **kwargs)
+    result = {"version": self._version,
+              "coverage": self._coverage}
+    return json.dumps(result, default=lambda x: float(x), *args, **kwargs)
