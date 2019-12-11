@@ -1,17 +1,18 @@
 #!/usr/bin/env python2
+"""All the utilities needed for parsing coverage."""
 
 from __future__ import division
 from __future__ import print_function
-import lcovparse
 import os
 import xml.etree.ElementTree as ET
 import re
 from collections import defaultdict
 from fractions import (Fraction, gcd)
 import json
-import pkg_resources
 import math
 import itertools
+import lcovparse
+import pkg_resources
 
 def _relative_filename(filename, root_dir):
   if not root_dir:
@@ -22,22 +23,29 @@ def _relative_filename(filename, root_dir):
   return filename
 
 class Coverage(object):
-  def __init__(self):
-    self._coverage = defaultdict(lambda: defaultdict(Fraction))
-    self._version = pkg_resources.require("EasyCov")[0].version
+  """Coverage represents a coverage report of many files."""
+
+  def __init__(self, coverage=None, version=None):
+    self._coverage = coverage or defaultdict(lambda: defaultdict(Fraction))
+    self._version = version or pkg_resources.require("EasyCov")[0].version
 
   @staticmethod
   def from_lcov(filename, root_dir=None):
-    with open(filename, 'r') as f:
-      json_cov = lcovparse.lcovparse(f.read())
-    result = Coverage()
-    for f in json_cov:
-      for line in f['lines']:
-        filename = _relative_filename(f['file'], root_dir)
-        result._coverage[filename][int(line['line'])] = max(
-            result._coverage[filename][int(line['line'])],
+    """Reads coverage from the filename provided.
+
+    If root_dir is provided, all paths that are below that directory have the
+    root_dir prefix removed from them
+    """
+    with open(filename, 'r') as current_file:
+      json_cov = lcovparse.lcovparse(current_file.read())
+    coverage = defaultdict(lambda: defaultdict(Fraction))
+    for current_file in json_cov:
+      for line in current_file['lines']:
+        filename = _relative_filename(current_file['file'], root_dir)
+        coverage[filename][int(line['line'])] = max(
+            coverage[filename][int(line['line'])],
             min(int(line['hit']), 0))
-    return result
+    return Coverage(coverage)
 
   @staticmethod
   def from_xml(filename, root_dir=None):
@@ -55,7 +63,7 @@ class Coverage(object):
         if line.get('branch', 'false') == 'true':
           # This is a branch line
           condition_coverage = line.get('condition-coverage')
-          m = re.match('\d+%\s+\((\d+)/(\d+)\)', condition_coverage)
+          m = re.match(r'\d+%\s+\((\d+)/(\d+)\)', condition_coverage)
           result._coverage[filename][int(line.get('number'))] = max(
               result._coverage[filename][int(line.get('number'))],
               Fraction(int(m.group(1)), int(m.group(2))))
@@ -87,7 +95,8 @@ class Coverage(object):
   def _value_to_bits(v):
     """Convert a value to a byte that represents that value between 0 and 1.
 
-    Return value 0 means that v was None.  1 is 0, 2 is 1, 3 is 1/2, 4 is 1/3, 5 is 2/3, etc.
+    Return value 0 means that v was None.  1 is 0, 2 is 1, 3 is 1/2, 4 is 1/3, 5
+    is 2/3, etc.
     """
     if v == None:
       return 0
