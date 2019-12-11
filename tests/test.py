@@ -26,7 +26,7 @@ class BasicTests(unittest.TestCase):
     expected_file = os.path.join(path, "pcb2gcode-lcov.info.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
-      actual_lines = json.dumps(result, indent=2).splitlines()
+      actual_lines = json.dumps(result, indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
   def test_lcov_to_json_with_root(self):
@@ -37,7 +37,7 @@ class BasicTests(unittest.TestCase):
     expected_file = os.path.join(path, "one-lcov.info.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
-      actual_lines = json.dumps(result, indent=2).splitlines()
+      actual_lines = json.dumps(result, indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
   def test_xml_to_json(self):
@@ -46,7 +46,7 @@ class BasicTests(unittest.TestCase):
     expected_file = os.path.join(path, "coverage.xml.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
-      actual_lines = json.dumps(result, indent=2).splitlines()
+      actual_lines = json.dumps(result, indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
 if __name__ == '__main__':
