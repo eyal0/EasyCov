@@ -20,33 +20,33 @@ class BasicTests(unittest.TestCase):
                              os.path.relpath(filename),
                              lineterm="")))
 
-  def test_lcov_to_json(self):
+  def test_from_lcov(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.parse_coverage.lcov_to_json(os.path.join(path, "pcb2gcode-lcov.info"))
+    result = easycov.coverage.Coverage.from_lcov(os.path.join(path, "pcb2gcode-lcov.info"))
     expected_file = os.path.join(path, "pcb2gcode-lcov.info.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
-      actual_lines = json.dumps(result, indent=2, sort_keys=True).splitlines()
+      actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
-  def test_lcov_to_json_with_root(self):
+  def test_from_lcov_with_root(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.parse_coverage.lcov_to_json(
+    result = easycov.coverage.Coverage.from_lcov(
         os.path.join(path, "one-lcov.info"),
         "/home/runner/work/pcb2gcode/pcb2gcode")
     expected_file = os.path.join(path, "one-lcov.info.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
-      actual_lines = json.dumps(result, indent=2, sort_keys=True).splitlines()
+      actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
-  def test_xml_to_json(self):
+  def test_from_xml(self):
     path = os.path.dirname(os.path.realpath(__file__))
-    result = easycov.parse_coverage.xml_to_json(os.path.join(path, "coverage.xml"), "/foo")
+    result = easycov.coverage.Coverage.from_xml(os.path.join(path, "coverage.xml"), "/foo")
     expected_file = os.path.join(path, "coverage.xml.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
-      actual_lines = json.dumps(result, indent=2, sort_keys=True).splitlines()
+      actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
 if __name__ == '__main__':
