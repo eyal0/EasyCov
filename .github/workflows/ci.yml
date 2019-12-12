@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  coverage:
+    name: Compute Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout pcb2gcode source
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 2
+    - name: Show event
+      run: |
+        cat $GITHUB_EVENT_PATH
