@@ -11,7 +11,7 @@ jobs:
     name: Compute Coverage
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout pcb2gcode source
+    - name: Checkout source code
       uses: actions/checkout@v1
       with:
         fetch-depth: 2
