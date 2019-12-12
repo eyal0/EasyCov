@@ -37,11 +37,20 @@ class Coverage(object):
     root_dir prefix removed from them
     """
     with open(filename, 'r') as current_file:
-      json_cov = lcovparse.lcovparse(current_file.read())
+      return Coverage.from_lcov_file(current_file, root_dir)
+
+  @staticmethod
+  def from_lcov_file(current_file, root_dir=None):
+    """Reads coverage from the already-open file provided.
+
+    If root_dir is provided, all paths that are below that directory have the
+    root_dir prefix removed from them
+    """
+    json_cov = lcovparse.lcovparse(current_file.read())
     coverage = defaultdict(lambda: defaultdict(Fraction))
-    for current_file in json_cov:
-      for line in current_file['lines']:
-        filename = _relative_filename(current_file['file'], root_dir)
+    for file_coverage in json_cov:
+      for line in file_coverage['lines']:
+        filename = _relative_filename(file_coverage['file'], root_dir)
         coverage[filename][int(line['line'])] = max(
             coverage[filename][int(line['line'])],
             min(int(line['hit']), 0))
@@ -54,8 +63,17 @@ class Coverage(object):
     If root_dir is provided, all paths that are below that directory have the
     root_dir prefix removed from them
     """
-    tree = ET.parse(filename)
-    root = tree.getroot()
+    with open(filename, 'r') as current_file:
+      return Coverage.from_xml_file(current_file, root_dir)
+
+  @staticmethod
+  def from_xml_file(current_file, root_dir=None):
+    """Read coverage from already-open python coverage.
+
+    If root_dir is provided, all paths that are below that directory have the
+    root_dir prefix removed from them
+    """
+    root = ET.fromstring(current_file.read())
     source_dir = ''
     for source in root.iterfind('./sources/source'):
       source_dir = source.text
