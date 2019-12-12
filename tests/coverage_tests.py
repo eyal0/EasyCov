@@ -25,6 +25,7 @@ class CoverageTests(unittest.TestCase):
                              lineterm="")))
 
   def test_from_lcov(self):
+    """Test Coverage.from_lcov(file)."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = easycov.coverage.Coverage.from_lcov(os.path.join(path, "pcb2gcode-lcov.info"))
     expected_file = os.path.join(path, "pcb2gcode-lcov.info.json")
@@ -34,6 +35,7 @@ class CoverageTests(unittest.TestCase):
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
   def test_from_lcov_with_root(self):
+    """Test Coverage.from_lcov(file, root_dir)."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = easycov.coverage.Coverage.from_lcov(
         os.path.join(path, "one-lcov.info"),
@@ -45,6 +47,7 @@ class CoverageTests(unittest.TestCase):
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
   def test_from_xml(self):
+    """Test Coverage.from_xml(file, root_dir)."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = easycov.coverage.Coverage.from_xml(os.path.join(path, "coverage.xml"), "/foo")
     expected_file = os.path.join(path, "coverage.xml.json")
@@ -54,12 +57,14 @@ class CoverageTests(unittest.TestCase):
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
   def test_roundtrip_lcov(self):
+    """Test roundtrip with lcov and binary."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = easycov.coverage.Coverage.from_lcov(os.path.join(path, "pcb2gcode-lcov.info"))
     roundtrip = easycov.coverage.Coverage.from_binary(result.to_binary())
     self.assertEqual(roundtrip, result)
 
   def test_roundtrip_lcov_with_root(self):
+    """Test roundtrip with lcov and root_dir and binary."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = easycov.coverage.Coverage.from_lcov(
         os.path.join(path, "one-lcov.info"),
@@ -68,31 +73,38 @@ class CoverageTests(unittest.TestCase):
     self.assertEqual(roundtrip, result)
 
   def test_roundtrip_xml(self):
+    """Test roundtrip with xml and root_dir and binary."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = easycov.coverage.Coverage.from_xml(os.path.join(path, "coverage.xml"), "/foo")
     roundtrip = easycov.coverage.Coverage.from_binary(result.to_binary())
     self.assertEqual(roundtrip, result)
 
   def test_roundtrip_lcov_json(self):
+    """Test roundtrip with lcov and json."""
     path = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(path, "pcb2gcode-lcov.info.json"), 'r') as f:
-      data = f.read()
+    with open(os.path.join(path, "pcb2gcode-lcov.info.json"), 'r') as json_file:
+      data = json_file.read()
       roundtrip = easycov.coverage.Coverage.from_json(data).to_json(indent=2, sort_keys=True)
-      self.compare_lines(roundtrip.splitlines(), data.splitlines(), os.path.join(path, "pcb2gcode-lcov.info.json"))
+      self.compare_lines(roundtrip.splitlines(), data.splitlines(),
+                         os.path.join(path, "pcb2gcode-lcov.info.json"))
 
   def test_roundtrip_lcov_with_root_json(self):
+    """Test roundtrip with lcov and root_dir and json."""
     path = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(path, "one-lcov.info.json"), 'r') as f:
-      data = f.read()
+    with open(os.path.join(path, "one-lcov.info.json"), 'r') as json_file:
+      data = json_file.read()
       roundtrip = easycov.coverage.Coverage.from_json(data).to_json(indent=2, sort_keys=True)
-      self.compare_lines(roundtrip.splitlines(), data.splitlines(), os.path.join(path, "pcb2gcode-lcov.info.json"))
+      self.compare_lines(roundtrip.splitlines(), data.splitlines(),
+                         os.path.join(path, "pcb2gcode-lcov.info.json"))
 
   def test_roundtrip_xml_json(self):
+    """Test roundtrip with xml and root_dir and json."""
     path = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(path, "coverage.xml.json"), 'r') as f:
-      data = f.read()
+    with open(os.path.join(path, "coverage.xml.json"), 'r') as json_file:
+      data = json_file.read()
       roundtrip = easycov.coverage.Coverage.from_json(data).to_json(indent=2, sort_keys=True)
-      self.compare_lines(roundtrip.splitlines(), data.splitlines(), os.path.join(path, "pcb2gcode-lcov.info.json"))
+      self.compare_lines(roundtrip.splitlines(), data.splitlines(),
+                         os.path.join(path, "pcb2gcode-lcov.info.json"))
 
 
 if __name__ == '__main__':
