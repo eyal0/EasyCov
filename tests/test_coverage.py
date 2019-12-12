@@ -5,7 +5,7 @@ import difflib
 import os
 import unittest
 
-from context import easycov
+from tests.context import easycov
 
 class CoverageTests(unittest.TestCase):
   """Test Coverage class."""
