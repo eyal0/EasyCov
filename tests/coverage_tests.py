@@ -1,15 +1,19 @@
 #!/usr/bin/env python2
+"""Test coverage.py"""
 
-import unittest
-import os
-import filecmp
-import json
 import difflib
+import os
+import unittest
 
 from context import easycov
 
-class BasicTests(unittest.TestCase):
+class CoverageTests(unittest.TestCase):
+  """Test Coverage class."""
   def compare_lines(self, actual_lines, expected_lines, filename):
+    """Helper for comparing lines.
+
+    Outputs a unified diff.
+    """
     self.assertEqual(actual_lines,
                      expected_lines,
                      "\n\n" + "\n".join(

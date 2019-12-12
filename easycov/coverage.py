@@ -61,10 +61,10 @@ class Coverage(object):
       source_dir = source.text
 
     coverage = defaultdict(lambda: defaultdict(Fraction))
-    for c in root.iterfind('./packages/package/classes/class'):
-      filename = os.path.join(source_dir, c.get('filename'))
+    for class_ in root.iterfind('./packages/package/classes/class'):
+      filename = os.path.join(source_dir, class_.get('filename'))
       filename = _relative_filename(filename, root_dir)
-      for line in c.iterfind('./lines/line'):
+      for line in class_.iterfind('./lines/line'):
         if line.get('branch', 'false') == 'true':
           # This is a branch line
           condition_coverage = line.get('condition-coverage')
@@ -217,15 +217,15 @@ class Coverage(object):
   def __eq__(self, other):
     if not isinstance(other, Coverage):
       return False
-    if self._version != other._version:
+    if self._version != other._version: # pylint: disable=protected-access
       return False
-    if sorted(self._coverage.keys()) != sorted(other._coverage.keys()):
+    if sorted(self._coverage.keys()) != sorted(other._coverage.keys()): # pylint: disable=protected-access
       return False
     for filename in self._coverage.iterkeys():
-      if sorted(self._coverage[filename].keys()) != sorted(other._coverage[filename].keys()):
+      if sorted(self._coverage[filename].keys()) != sorted(other._coverage[filename].keys()): # pylint: disable=protected-access
         return False
       for line_number in self._coverage[filename].iterkeys():
-        if self._coverage[filename][line_number] != other._coverage[filename][line_number]:
+        if self._coverage[filename][line_number] != other._coverage[filename][line_number]: # pylint: disable=protected-access
           return False
     return True
 
