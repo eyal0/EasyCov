@@ -37,9 +37,11 @@ def _get_args():
 if __name__ == '__main__':
   ARGS = _get_args()
   if ARGS.subcommand == 'convert':
+    total_coverage = Coverage()
     for lcovs in ARGS.lcov:
       for lcov in lcovs:
-        print(Coverage.from_lcov_file(lcov).to_binary())
+        total_coverage += Coverage.from_lcov_file(lcov)
     for xmls in ARGS.xml:
       for xml in xmls:
-        print(Coverage.from_xml_file(xml).to_binary())
+        total_coverage += Coverage.from_xml_file(xml)
+    print(total_coverage.to_binary())

@@ -11,6 +11,7 @@ from fractions import (Fraction, gcd)
 import json
 import math
 import itertools
+from copy import copy
 import lcovparse
 import pkg_resources
 
@@ -182,7 +183,7 @@ class Coverage(object):
       hits = [self._value_to_bits(self._coverage[filename].get(line_number, None))
               for line_number in xrange(number_of_lines)]
       bits_per_line = int(math.ceil(math.log(max(hits)+1, 2)))
-      result += chr(bits_per_line)
+      result += unichr(bits_per_line)
       hit_bits = ""
       for hit in hits:
         new_val = bin(hit)[2:]
@@ -233,17 +234,18 @@ class Coverage(object):
     return Coverage(coverage, version)
 
   def __eq__(self, other):
+    # pylint: disable=protected-access
     if not isinstance(other, Coverage):
       return False
-    if self._version != other._version: # pylint: disable=protected-access
+    if self._version != other._version:
       return False
-    if sorted(self._coverage.keys()) != sorted(other._coverage.keys()): # pylint: disable=protected-access
+    if sorted(self._coverage.keys()) != sorted(other._coverage.keys()):
       return False
     for filename in self._coverage.iterkeys():
-      if sorted(self._coverage[filename].keys()) != sorted(other._coverage[filename].keys()): # pylint: disable=protected-access
+      if sorted(self._coverage[filename].keys()) != sorted(other._coverage[filename].keys()):
         return False
       for line_number in self._coverage[filename].iterkeys():
-        if self._coverage[filename][line_number] != other._coverage[filename][line_number]: # pylint: disable=protected-access
+        if self._coverage[filename][line_number] != other._coverage[filename][line_number]:
           return False
     return True
 
@@ -252,3 +254,18 @@ class Coverage(object):
 
   def __repr__(self):
     return self.to_json(indent=2, sort_keys=True)
+
+  def __iadd__(self, other):
+    # pylint: disable=protected-access
+    for filename, file_coverage in other._coverage.iteritems():
+      if filename not in self._coverage:
+        self._coverage[filename] = copy(file_coverage)
+        continue
+      for line, hit in file_coverage.iteritems():
+        if line not in self._coverage[filename]:
+          self._coverage[filename][line] = copy(hit)
+          continue
+        self._coverage[filename][line] = max(
+            self._coverage[filename][line],
+            hit)
+    return self
