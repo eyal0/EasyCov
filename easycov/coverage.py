@@ -173,17 +173,17 @@ class Coverage(object):
       Then for each line from 0 to number_of_lines-1:
         The hit value from 0 to 1 encoded into the right number of bits.
     """
-    result = ""
-    result += self._version + "\0"
+    result = bytearray()
+    result += self._version + b"\0"
     for filename in sorted(self._coverage.keys()):
-      result += filename + "\0"
+      result += filename + b"\0"
       number_of_lines = max(self._coverage[filename].iterkeys())+1
       result += str(number_of_lines) + "\0"
       #hits is the bit-encoded value of the fraction.
       hits = [self._value_to_bits(self._coverage[filename].get(line_number, None))
               for line_number in xrange(number_of_lines)]
       bits_per_line = int(math.ceil(math.log(max(hits)+1, 2)))
-      result += unichr(bits_per_line)
+      result += chr(bits_per_line)
       hit_bits = ""
       for hit in hits:
         new_val = bin(hit)[2:]
@@ -192,38 +192,38 @@ class Coverage(object):
       if len(hit_bits) % 8 != 0:
         hit_bits += '0' * (8 - len(hit_bits) % 8)
       for i in xrange(0, len(hit_bits), 8):
-        result += unichr(int(hit_bits[i:i+8], 2))
+        result += chr(int(hit_bits[i:i+8], 2))
     return result
 
   @staticmethod
   def from_binary(bin_coverage):
     """Reads the coverage from the binary format described in to_binary."""
     pos = 0
-    version = ""
-    while bin_coverage[pos] != '\0':
-      version += bin_coverage[pos]
+    version = bytearray()
+    while bin_coverage[pos] != 0:
+      version += chr(bin_coverage[pos])
       pos += 1
     pos += 1
     coverage = defaultdict(lambda: defaultdict(Fraction))
     while pos < len(bin_coverage):
       filename = ""
-      while bin_coverage[pos] != '\0':
-        filename += bin_coverage[pos]
+      while bin_coverage[pos] != 0:
+        filename += chr(bin_coverage[pos])
         pos += 1
       pos += 1
-      number_of_lines = ""
-      while bin_coverage[pos] != '\0':
-        number_of_lines += bin_coverage[pos]
+      number_of_lines = bytearray()
+      while bin_coverage[pos] != 0:
+        number_of_lines += chr(bin_coverage[pos])
         pos += 1
       pos += 1
       number_of_lines = int(number_of_lines)
-      bits_per_line = ord(bin_coverage[pos])
+      bits_per_line = bin_coverage[pos]
       pos += 1
       total_bits = number_of_lines * bits_per_line
       total_bytes = (total_bits + 7) // 8
       hit_bytes = bin_coverage[pos:pos+total_bytes]
       pos += total_bytes
-      hit_bits = (bin(ord(b))[2:] for b in hit_bytes)
+      hit_bits = (bin(b)[2:] for b in hit_bytes)
       hit_bits = "".join('0'*(8-len(b)) + b for b in hit_bits)
       hits = {}
       for line_number, hit in enumerate(re.findall(("."*bits_per_line), hit_bits)):
