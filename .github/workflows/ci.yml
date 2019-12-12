@@ -11,6 +11,13 @@ jobs:
     name: Compute Coverage
     runs-on: ubuntu-latest
     steps:
+    - name: Setup paths and env
+      run: |
+        mkdir -p $HOME/.local/bin
+        mkdir -p $HOME/.local/lib/pkgconfig
+        echo "::set-env name=PKG_CONFIG_PATH::$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        echo "::set-env name=LD_LIBRARY_PATH::$HOME/.local/lib:$LD_LIBRARY_PATH"
+        echo "::set-env name=PATH::$HOME/.local/bin:$PATH"
     - name: Checkout source code
       uses: actions/checkout@v2-beta
       with:
@@ -21,10 +28,26 @@ jobs:
     - name: Collect coverage
       run: |
         pip install --user coverage
+        pip install --user wheel
+        pip install --user .
+        hash -r
         coverage erase
         coverage run -m unittest discover
         coverage xml
-    - name: Create EasyCov coverage
+    - name: Check EasyCov coverage
+      id: check_coverage
       run: |
-        pip install --user .
-        
+        sudo apt-get install gzip
+        easycov convert --xml coverage.xml > /tmp/coverage.bin
+        gzip /tmp/coverage.bin
+        diff -q /tmp/coverage.bin.gz coverage.bin.gz ||
+        echo "::set-output name=update_coverage::1"
+    - name: Maybe update coverage
+      if: steps.check_coverage.outputs.update_coverage == 1
+      run: |
+        cp -f /tmp/coverage.bin.gz coverage.bin.gz
+        git add coverage.bin.gz
+        git config --global user.email "58579435+EasyCov-bot@users.noreply.github.com"
+        git config --global user.name "EasyCov Bot"
+        git commit -a -m "Automated update of coverage.bin.gz"
+        git push
