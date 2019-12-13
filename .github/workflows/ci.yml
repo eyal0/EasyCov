@@ -18,6 +18,7 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
         echo "::set-env name=LD_LIBRARY_PATH::$HOME/.local/lib:$LD_LIBRARY_PATH"
         echo "::set-env name=PATH::$HOME/.local/bin:$PATH"
+        env
     - name: Checkout source code
       uses: actions/checkout@v2-beta
       with:
