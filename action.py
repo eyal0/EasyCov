@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 import shlex
-import tempfile
+from inspect import currentframe, getframeinfo
 
 def execute(cmd, check=True):
   """Run cmd, printing the command as it is run.
@@ -20,6 +20,8 @@ def execute(cmd, check=True):
   except subprocess.CalledProcessError as exc:
     print(exc.output)
     if check:
+      frameinfo = getframeinfo(currentframe())
+      print("::error file=%s,line=%d::Didn't work" % (frameinfo.filename, frameinfo.lineno))
       raise
     else:
       return exc.returncode
