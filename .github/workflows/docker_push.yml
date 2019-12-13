@@ -13,11 +13,12 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v2-beta
     - name: Publish Docker Image
-      uses: machine-learning-apps/gpr-docker-publish@master
+      uses: saubermacherag/gpr-docker-publish@master
       id: docker
       with:
-        IMAGE_NAME: 'easycov-coverage'
         DOCKERFILE_PATH: 'Dockerfile'
         BUILD_CONTEXT: '.'
+        DOCKERHUB_REPOSITORY: 'easycov/easycov-coverage'
+        DOCKERHUB_USERNAME: 'easycov'
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_PAT }}
