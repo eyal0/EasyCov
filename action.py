@@ -35,10 +35,10 @@ def main():
   if github_event_name == 'push':
     push_dir = "/tmp/push"
     ssh_url = github_event['repository']['ssh_url']
-    ssh_url = "x-access-token:" + github_token + ssh_url[4:]
-    execute("git clone --depth=1 --branch=%s --no-tags %s %s" %
+    ssh_url = "x-access-token:" + github_token + ssh_url[3:]
+    execute("git clone --depth=1 --branch=%s %s %s" %
             (github_event['after'], ssh_url, push_dir))
-    coverage_bin = os.path.join(tmp_dir, "coverage.bin")
+    coverage_bin = "/tmp/coverage.bin"
     xml_coverage = os.getenv('INPUT_XML_COVERAGE')
     if xml_coverage:
       xml_coverage = "--xml " + xml_coverage
