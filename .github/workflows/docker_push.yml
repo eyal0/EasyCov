@@ -1,0 +1,23 @@
+name: Push Docker Image
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  push:
+    name: Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2-beta
+    - name: Publish Docker Image
+      uses: machine-learning-apps/gpr-docker-publish@master
+      id: docker
+      with:
+        IMAGE_NAME: 'easycov-coverage'
+        DOCKERFILE_PATH: 'Dockerfile'
+        BUILD_CONTEXT: '.'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
