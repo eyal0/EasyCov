@@ -27,6 +27,12 @@ def execute(cmd, check=True):
       return exc.returncode
   return 0
 
+def git_clone_sha(sha, repo, target_dir):
+  execute("git init %s" % target_dir)
+  execute("git -C %s remote add origin %s" % (target_dir, repo))
+  execute("git -C %s fetch --depth=1 origin %s" % (target_dir, sha))
+  execute("git -C %s checkout FETCH_HEAD" % (target_dir))
+
 def main():
   """Run the action."""
   github_event_path = os.getenv('GITHUB_EVENT_PATH')
@@ -38,8 +44,7 @@ def main():
     push_dir = "/tmp/push"
     clone_url = github_event['repository']['clone_url']
     clone_url = clone_url.replace('https://', 'https://x-access-token:' + github_token + "@")
-    execute("git clone --depth=1 --branch=%s %s %s" %
-            (github_event['after'], clone_url, push_dir))
+    git_clone_sha(github_event['after'], clone_url, push_dir)
     coverage_bin = "/tmp/coverage.bin"
     xml_coverage = os.getenv('INPUT_XML_COVERAGE')
     if xml_coverage:
