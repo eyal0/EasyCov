@@ -35,7 +35,7 @@ def main():
   if github_event_name == 'push':
     push_dir = "/tmp/push"
     ssh_url = github_event['repository']['ssh_url']
-    ssh_url = "x-access-token:" + github_token + ssh_url[3:]
+    ssh_url = "http://x-access-token:" + github_token + ssh_url[3:]
     execute("git clone --depth=1 --branch=%s %s %s" %
             (github_event['after'], ssh_url, push_dir))
     coverage_bin = "/tmp/coverage.bin"
