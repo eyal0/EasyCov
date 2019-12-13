@@ -3,9 +3,7 @@ author: 'EasyCov'
 description: 'Coverage for pull requests without servers'
 runs:
   using: 'docker'
-  image: 'ActionDockerfile'
-  args:
-    - ${{ inputs.github-token }}
+  image: 'easycov/easycov-coverage@master'
 branding:
   icon: check-circle
   color: 'purple'
