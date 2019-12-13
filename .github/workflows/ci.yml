@@ -36,22 +36,8 @@ jobs:
         coverage erase
         coverage run -m unittest discover
         coverage xml
-    - name: Check EasyCov coverage
-      id: check_coverage
-      run: |
-        sudo apt-get install gzip
-        easycov convert --xml coverage.xml > /tmp/coverage.bin
-        gzip -n /tmp/coverage.bin
-        diff -q /tmp/coverage.bin.gz coverage.bin.gz ||
-        echo "::set-output name=update_coverage::1"
-    - name: Maybe update coverage
-      if: >-
-        steps.check_coverage.outputs.update_coverage == 1 &&
-        github.event_name == 'push'
-      run: |
-        cp -f /tmp/coverage.bin.gz coverage.bin.gz
-        git add coverage.bin.gz
-        git config --global user.email "58579435+EasyCov-bot@users.noreply.github.com"
-        git config --global user.name "EasyCov Bot"
-        git commit -a -m "Automated update of coverage.bin.gz"
-        git push
+    - name: Coverage
+      uses: EasyCov/EasyCov@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        xml-coverage: coverage.xml

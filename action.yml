@@ -1,7 +1,20 @@
-name: EasyCov coverage
-author: EasyCov
-description: Coverage for pull requests without servers
-runs: "python action.py"
+name: 'EasyCov coverage'
+author: 'EasyCov'
+description: 'Coverage for pull requests without servers'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.github-token }}
 branding:
   icon: check-circle
   color: 'purple'
+inputs:
+  github-token:
+    description: 'Usually "$\{\{ secrets.GITHUB_TOKEN \}\}"'
+    required: false
+    default: ''
+  xml-coverage:
+    description: 'Path to file relative to the gihub workspace'
+    required: false
+    default: ''

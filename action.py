@@ -29,34 +29,20 @@ def main():
   """Run the action."""
   github_event_path = os.getenv('GITHUB_EVENT_PATH')
   github_event_name = os.getenv('GITHUB_EVENT_NAME')
-  home = os.getenv('HOME')
-  try:
-    os.makedirs(os.path.join(home, ".local/bin"))
-  except OSError:
-    pass # Ignore if the dir already exists.
-  os.environ['PATH'] = os.path.join(home, '.local/bin') + ":" + os.getenv('PATH')
-  tmp_dir = tempfile.mkdtemp()
-  github_token = os.getenv('INPUT_GITHUB_TOKEN')
+  github_token = os.getenv('INPUT_GITHUB-TOKEN')
   with open(github_event_path, 'r') as event_file:
     github_event = json.loads(event_file.read())
   if github_event_name == 'push':
-    push_dir = os.path.join(tmp_dir, "push")
-    os.makedirs(push_dir)
+    push_dir = "/tmp/push"
     ssh_url = github_event['repository']['ssh_url']
     ssh_url = "x-access-token:" + github_token + ssh_url[4:]
     execute("git clone --depth=1 --branch=%s --no-tags %s %s" %
-            (github_event.after, ssh_url, push_dir))
-    execute("pip install --user coverage")
-    execute("pip install --user wheel")
-    execute("pip install --user .")
-    execute("hash -r")
-    os.chdir(push_dir)
-    execute("coverage erase")
-    execute("coverage run -m unittest discover")
-    execute("coverage xml")
-    execute("sudo apt-get install gzip")
+            (github_event['after'], ssh_url, push_dir))
     coverage_bin = os.path.join(tmp_dir, "coverage.bin")
-    execute("easycov convert --xml coverage.xml > %s" % (coverage_bin))
+    xml_coverage = os.getenv('INPUT_XML_COVERAGE')
+    if xml_coverage:
+      xml_coverage = "--xml " + xml_coverage
+    execute("easycov convert %s > %s" % (xml_coverage, coverage_bin))
     execute("gzip -n %s" % (coverage_bin))
     coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
     if coverage_mismatch:
