@@ -1,0 +1,7 @@
+name: EasyCov coverage
+author: EasyCov
+description: Coverage for pull requests without servers
+runs: "python action.py"
+branding:
+  icon: check-circle
+  color: 'purple'
