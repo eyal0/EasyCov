@@ -3,7 +3,7 @@ author: 'EasyCov'
 description: 'Coverage for pull requests without servers'
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: 'ActionDockerfile'
   args:
     - ${{ inputs.github-token }}
 branding:
