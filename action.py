@@ -20,8 +20,8 @@ def execute(cmd, check=True):
   except subprocess.CalledProcessError as exc:
     print(exc.output)
     if check:
-      frameinfo = getframeinfo(currentframe())
-      print("::error file=%s,line=%d::Didn't work" % (frameinfo.filename, frameinfo.lineno))
+      frameinfo = getframeinfo(getouterframes(currentframe())[1])
+      print("::error file=%s,line=%d::%s" % (frameinfo.filename, frameinfo.lineno, str(e)))
       raise
     else:
       return exc.returncode
