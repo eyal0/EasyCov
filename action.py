@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 import shlex
-from inspect import currentframe, getframeinfo
+from inspect import currentframe, getframeinfo, getouterframes
 
 def execute(cmd, check=True):
   """Run cmd, printing the command as it is run.
@@ -20,8 +20,8 @@ def execute(cmd, check=True):
   except subprocess.CalledProcessError as exc:
     print(exc.output)
     if check:
-      frameinfo = getframeinfo(getouterframes(currentframe())[1])
-      print("::error file=%s,line=%d::%s" % (frameinfo.filename, frameinfo.lineno, str(e)))
+      frameinfo = getframeinfo(currentframe())
+      print("::error file=%s,line=%d::%s" % (frameinfo.filename, frameinfo.lineno, str(exc)))
       raise
     else:
       return exc.returncode
@@ -36,10 +36,10 @@ def main():
     github_event = json.loads(event_file.read())
   if github_event_name == 'push':
     push_dir = "/tmp/push"
-    ssh_url = github_event['repository']['ssh_url']
-    ssh_url = "http://x-access-token:" + github_token + ssh_url[3:]
+    clone_url = github_event['repository']['clone_url']
+    clone_url = clone_url.replace('https://', 'https://x-access-token:' + github_token + "@")
     execute("git clone --depth=1 --branch=%s %s %s" %
-            (github_event['after'], ssh_url, push_dir))
+            (github_event['after'], clone_url, push_dir))
     coverage_bin = "/tmp/coverage.bin"
     xml_coverage = os.getenv('INPUT_XML_COVERAGE')
     if xml_coverage:
