@@ -79,6 +79,7 @@ def main():
       execute(git_cmd + ' config --global user.email ' +
               '"58579435+EasyCov-bot@users.noreply.github.com"')
       execute(git_cmd + ' config --global user.name "EasyCov Bot"')
+      execute(git_cmd + ' checkout --force ' + github_event['ref'].replace('refs/heads/', ''))
       execute(git_cmd + ' commit -a -m "Automated update of coverage.bin.gz"')
       execute(git_cmd + ' push')
     else:
