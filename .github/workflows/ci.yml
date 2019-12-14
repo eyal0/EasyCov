@@ -59,3 +59,4 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         xml-coverage: coverage.xml
+        verbosity: 5
