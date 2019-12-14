@@ -44,6 +44,7 @@ def git_clone_sha(sha, repo_url, github_token, target_dir):
 
 def main():
   """Run the action."""
+  print(colorama.Fore.GREEN + "just testing" + colorama.Style.RESET_ALL)
   github_event_path = os.getenv('GITHUB_EVENT_PATH')
   github_event_name = os.getenv('GITHUB_EVENT_NAME')
   github_token = os.getenv('INPUT_GITHUB-TOKEN')
@@ -85,7 +86,6 @@ def main():
       execute(git_cmd + ' push')
     else:
       maybe_print("[command]Coverage is unchanged.", 1)
-    print(colorama.Fore.GREEN + "just testing" + colorama.Style.RESET_ALL)
 
 if __name__ == '__main__':
   main()
