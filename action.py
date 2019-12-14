@@ -46,7 +46,7 @@ def main():
     clone_url = github_event['repository']['clone_url']
     git_clone_sha(github_event['after'], clone_url, github_token, push_dir)
     coverage_bin = "/tmp/coverage.bin"
-    xml_coverage = os.getenv('INPUT_XML_COVERAGE')
+    xml_coverage = os.getenv('INPUT_XML-COVERAGE')
     if xml_coverage:
       xml_coverage = "--xml " + xml_coverage
     execute("easycov convert %s > %s" % (xml_coverage, coverage_bin))
