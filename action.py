@@ -48,7 +48,7 @@ def main():
   with open(github_event_path, 'r') as event_file:
     github_event = json.loads(event_file.read())
   if github_event_name == 'push':
-    maybe_print("[command]Push Event", 1)
+    maybe_print("[command]Detected Push Event.", 1)
     push_dir = "/tmp/push"
     clone_url = github_event['repository']['clone_url']
     maybe_print("[command]Cloning branch.", 1)
@@ -71,7 +71,7 @@ def main():
     execute("gzip -n %s" % (coverage_bin))
     coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
     if coverage_mismatch:
-      maybe_print("[command]Coverage is improved.", 1)
+      maybe_print("[command]Coverage is changed.", 1)
       git_cmd = "git -C %s" % (push_dir)
       execute("cp -f /tmp/coverage.bin.gz coverage.bin.gz")
       execute(git_cmd + " add coverage.bin.gz")
