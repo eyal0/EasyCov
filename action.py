@@ -8,20 +8,26 @@ import subprocess
 import shlex
 from inspect import getframeinfo, stack
 
+def maybe_print(text, level):
+  """Print a string only if the verbosity is high enough."""
+  verbosity = os.getenv('INPUT_VERBOSITY')
+  if level <= verbosity:
+    print(text)
+
 def execute(cmd, check=True):
   """Run cmd, printing the command as it is run.
 
   Returns the result.  If check is True, raise an exception on errors.
   """
-  print("[command]" + cmd)
+  maybe_print("[command]" + cmd, 2)
   try:
     output = subprocess.check_output(shlex.split(cmd), stderr=subprocess.STDOUT)
-    print(output)
+    maybe_print(output, 3)
   except subprocess.CalledProcessError as exc:
-    print(exc.output)
+    maybe_print(exc.output, 3)
     if check:
       caller = getframeinfo(stack()[1][0])
-      print("::error file=%s,line=%d::%s" % (caller.filename, caller.lineno, str(exc)))
+      maybe_print("::error file=%s,line=%d::%s" % (caller.filename, caller.lineno, str(exc)), 1)
       raise
     else:
       return exc.returncode
@@ -42,8 +48,10 @@ def main():
   with open(github_event_path, 'r') as event_file:
     github_event = json.loads(event_file.read())
   if github_event_name == 'push':
+    maybe_print("[command]Push Event", 1)
     push_dir = "/tmp/push"
     clone_url = github_event['repository']['clone_url']
+    maybe_print("[command]Cloning branch.", 1)
     git_clone_sha(github_event['after'], clone_url, github_token, push_dir)
     coverage_bin = "/tmp/coverage.bin"
     xml_coverage = os.getenv('INPUT_XML-COVERAGE')
@@ -51,11 +59,13 @@ def main():
       xml_coverage = "--xml " + xml_coverage
     else:
       xml_coverage = ""
+    maybe_print("[command]Collecting coverage.", 1)
     with open(coverage_bin, 'wb') as coverage_file:
       coverage_file.write(execute("easycov convert %s" % (xml_coverage)))
     execute("gzip -n %s" % (coverage_bin))
     coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
     if coverage_mismatch:
+      maybe_print("[command]Coverage is improved.", 1)
       git_cmd = "git -C %s" % (push_dir)
       execute("cp -f /tmp/coverage.bin.gz coverage.bin.gz")
       execute(git_cmd + " add coverage.bin.gz")
@@ -64,6 +74,8 @@ def main():
       execute(git_cmd + ' config --global user.name "EasyCov Bot"')
       execute(git_cmd + ' commit -a -m "Automated update of coverage.bin.gz"')
       execute(git_cmd + ' push')
+    else:
+      maybe_print("[command]Coverage is unchanged.", 1)
 
 if __name__ == '__main__':
   main()

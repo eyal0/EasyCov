@@ -13,6 +13,14 @@ inputs:
     required: false
     default: ''
   xml-coverage:
-    description: 'Path to file relative to the gihub workspace'
+    description: 'Path to space-separated file(s) relative to the gihub workspace.'
     required: false
     default: ''
+  lcov-coverage:
+    description: 'Path to space-separated file(s) relative to the gihub workspace.'
+    required: false
+    default: ''
+  verbosity:
+    description: 'Set debug logging verbosity, 0-5.  0 is silent, 1 is normal, 2 is some more...'
+    required: false
+    default: 1
