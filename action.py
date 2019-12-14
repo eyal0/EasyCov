@@ -25,7 +25,7 @@ def execute(cmd, check=True):
       raise
     else:
       return exc.returncode
-  return 0
+  return output
 
 def git_clone_sha(sha, repo_url, github_token, target_dir):
   """Clone a single commit into the target_dir."""
@@ -49,16 +49,21 @@ def main():
     xml_coverage = os.getenv('INPUT_XML-COVERAGE')
     if xml_coverage:
       xml_coverage = "--xml " + xml_coverage
-    execute("easycov convert %s > %s" % (xml_coverage, coverage_bin))
+    else:
+      xml_coverage = ""
+    with open(coverage_bin, 'wb') as coverage_file:
+      coverage_file.write(execute("easycov convert %s" % (xml_coverage)))
     execute("gzip -n %s" % (coverage_bin))
     coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
     if coverage_mismatch:
+      git_cmd = "git -C %s" % (push_dir)
       execute("cp -f /tmp/coverage.bin.gz coverage.bin.gz")
-      execute("git add coverage.bin.gz")
-      execute('git config --global user.email "58579435+EasyCov-bot@users.noreply.github.com"')
-      execute('git config --global user.name "EasyCov Bot"')
-      execute('git commit -a -m "Automated update of coverage.bin.gz"')
-      execute('git push')
+      execute(git_cmd + " add coverage.bin.gz")
+      execute(git_cmd + ' config --global user.email ' +
+              '"58579435+EasyCov-bot@users.noreply.github.com"')
+      execute(git_cmd + ' config --global user.name "EasyCov Bot"')
+      execute(git_cmd + ' commit -a -m "Automated update of coverage.bin.gz"')
+      execute(git_cmd + ' push')
 
 if __name__ == '__main__':
   main()
