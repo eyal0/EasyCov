@@ -27,7 +27,8 @@ def execute(cmd, check=True):
     maybe_print(exc.output, 3)
     if check:
       caller = getframeinfo(stack()[1][0])
-      maybe_print("::error file=%s,line=%d::%s" % (caller.filename, caller.lineno, str(exc)), 1)
+      filename = caller.filename.replace("/root/EasyCov", "")
+      maybe_print("::error file=%s,line=%d::%s" % (filename, caller.lineno, str(exc)), 1)
       raise
     else:
       return exc.returncode
