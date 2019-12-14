@@ -74,12 +74,12 @@ def main():
     if coverage_mismatch:
       maybe_print("[command]Coverage is changed.", 1)
       git_cmd = "git -C %s" % (push_dir)
-      execute("cp -f /tmp/coverage.bin.gz coverage.bin.gz")
+      execute("cp -f %s.gz %s" % (coverage_bin, os.path.join(push_dir, "coverage_bin.gz")))
       execute(git_cmd + ' config --global user.email ' +
               '"58579435+EasyCov-bot@users.noreply.github.com"')
       execute(git_cmd + ' config --global user.name "EasyCov Bot"')
       execute(git_cmd + ' checkout --force ' + github_event['ref'].replace('refs/heads/', ''))
-      execute(git_cmd + (" add %scoverage.bin.gz" % (push_dir)))
+      execute(git_cmd + " add /tmp/push/coverage_bin.gz")
       execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
       execute(git_cmd + ' push')
     else:
