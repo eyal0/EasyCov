@@ -2,7 +2,6 @@
 """Run the script to process the coverage."""
 
 from __future__ import print_function
-import colorama
 import json
 import os
 import subprocess
@@ -44,7 +43,6 @@ def git_clone_sha(sha, repo_url, github_token, target_dir):
 
 def main():
   """Run the action."""
-  print(colorama.Fore.GREEN + "just testing" + colorama.Style.RESET_ALL)
   github_event_path = os.getenv('GITHUB_EVENT_PATH')
   github_event_name = os.getenv('GITHUB_EVENT_NAME')
   github_token = os.getenv('INPUT_GITHUB-TOKEN')
