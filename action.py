@@ -10,7 +10,7 @@ from inspect import getframeinfo, stack
 
 def maybe_print(text, level):
   """Print a string only if the verbosity is high enough."""
-  verbosity = os.getenv('INPUT_VERBOSITY')
+  verbosity = int(os.getenv('INPUT_VERBOSITY'))
   if level <= verbosity:
     print(text)
 
@@ -59,9 +59,16 @@ def main():
       xml_coverage = "--xml " + xml_coverage
     else:
       xml_coverage = ""
+    xml_coverage = os.getenv('INPUT_XML-COVERAGE')
+    lcov_coverage = os.getenv('INPUT_XML-COVERAGE')
+    if lcov_coverage:
+      lcov_coverage = "--lcov " + lcov_coverage
+    else:
+      lcov_coverage = ""
     maybe_print("[command]Collecting coverage.", 1)
+
     with open(coverage_bin, 'wb') as coverage_file:
-      coverage_file.write(execute("easycov convert %s" % (xml_coverage)))
+      coverage_file.write(execute("easycov convert %s" % " ".join((xml_coverage, lcov_coverage))))
     execute("gzip -n %s" % (coverage_bin))
     coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
     if coverage_mismatch:
