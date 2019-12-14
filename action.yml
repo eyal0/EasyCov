@@ -1,0 +1,26 @@
+name: 'EasyCov coverage'
+author: 'EasyCov'
+description: 'Coverage for pull requests without servers'
+runs:
+  using: 'docker'
+  image: 'docker://easycov/easycov-coverage'
+branding:
+  icon: check-circle
+  color: 'purple'
+inputs:
+  github-token:
+    description: 'Usually "$\{\{ secrets.GITHUB_TOKEN \}\}"'
+    required: false
+    default: ''
+  xml-coverage:
+    description: 'Path to space-separated file(s) relative to the gihub workspace.'
+    required: false
+    default: ''
+  lcov-coverage:
+    description: 'Path to space-separated file(s) relative to the gihub workspace.'
+    required: false
+    default: ''
+  verbosity:
+    description: 'Set debug logging verbosity, 0-5.  0 is silent, 1 is normal, 2 is some more...'
+    required: false
+    default: 1
