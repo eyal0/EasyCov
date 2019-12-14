@@ -2,6 +2,7 @@
 """Run the script to process the coverage."""
 
 from __future__ import print_function
+import colorama
 import json
 import os
 import subprocess
@@ -84,6 +85,7 @@ def main():
       execute(git_cmd + ' push')
     else:
       maybe_print("[command]Coverage is unchanged.", 1)
+    print(colorama.Fore.GREEN + "just testing" + colorama.Style.RESET_ALL)
 
 if __name__ == '__main__':
   main()

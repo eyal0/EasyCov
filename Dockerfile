@@ -8,6 +8,7 @@ RUN apt-get -y install python-pip-whl
 RUN apt-get -y install git
 RUN pip install coverage
 RUN pip install wheel
+RUN pip install colorama
 
 COPY . /root/EasyCov/
 RUN pip install /root/EasyCov
