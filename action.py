@@ -27,15 +27,21 @@ def execute(cmd, check=True):
       return exc.returncode
   return 0
 
-def git_clone_sha(sha, repo, target_dir):
+def git_clone_sha(sha, repo, github_token, target_dir):
   """Clone a single commit into the target_dir."""
   execute("git init %s" % target_dir)
   execute("git -C %s remote add origin %s" % (target_dir, repo))
+  execute("git -C %s config --local gc.auto 0" % target_dir)
+  execute(r"git config --local " +
+          r"http.https://github.com/.extraheader 'AUTHORIZATION: basic %s'"
+          % (github_token))
   execute(("git -C %s -c protocol.version=2 fetch " +
-           "--no-tags --prune --depth=1 origin " +
+           "--no-tags --prune --progress --no-recurse-submodules " +
+           "--depth=1 origin " +
            "+%s:refs/remotes/origin/master")
           % (target_dir, sha))
-  execute("git -C %s checkout --force -B master refs/remote/origin/master"
+  execute(("git -C %s checkout --progress --force " +
+           "-B master refs/remote/origin/master")
           % (target_dir))
   execute("git -C %s log -1" % (target_dir))
 
@@ -49,8 +55,7 @@ def main():
   if github_event_name == 'push':
     push_dir = "/tmp/push"
     clone_url = github_event['repository']['clone_url']
-    clone_url = clone_url.replace('https://', 'https://x-access-token:' + github_token + "@")
-    git_clone_sha(github_event['after'], clone_url, push_dir)
+    git_clone_sha(github_event['after'], clone_url, github_token, push_dir)
     coverage_bin = "/tmp/coverage.bin"
     xml_coverage = os.getenv('INPUT_XML_COVERAGE')
     if xml_coverage:
