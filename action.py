@@ -59,8 +59,7 @@ def main():
       xml_coverage = "--xml " + xml_coverage
     else:
       xml_coverage = ""
-    xml_coverage = os.getenv('INPUT_XML-COVERAGE')
-    lcov_coverage = os.getenv('INPUT_XML-COVERAGE')
+    lcov_coverage = os.getenv('INPUT_LCOV-COVERAGE')
     if lcov_coverage:
       lcov_coverage = "--lcov " + lcov_coverage
     else:
