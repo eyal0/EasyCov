@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 import shlex
-from inspect import currentframe, getframeinfo, getouterframes
+from inspect import getframeinfo, stack
 
 def execute(cmd, check=True):
   """Run cmd, printing the command as it is run.
@@ -20,18 +20,24 @@ def execute(cmd, check=True):
   except subprocess.CalledProcessError as exc:
     print(exc.output)
     if check:
-      frameinfo = getframeinfo(currentframe())
-      print("::error file=%s,line=%d::%s" % (frameinfo.filename, frameinfo.lineno, str(exc)))
+      caller = getframeinfo(stack()[1][0])
+      print("::error file=%s,line=%d::%s" % (caller.filename, caller.lineno, str(exc)))
       raise
     else:
       return exc.returncode
   return 0
 
 def git_clone_sha(sha, repo, target_dir):
+  """Clone a single commit into the target_dir."""
   execute("git init %s" % target_dir)
   execute("git -C %s remote add origin %s" % (target_dir, repo))
-  execute("git -C %s fetch --depth=1 origin %s" % (target_dir, sha))
-  execute("git -C %s checkout FETCH_HEAD" % (target_dir))
+  execute(("git -C %s -c protocol.version=2 fetch " +
+           "--no-tags --prune --depth=1 origin " +
+           "+%s:refs/remotes/origin/master")
+          % (target_dir, sha))
+  execute("git -C %s checkout --force -B master refs/remote/origin/master"
+          % (target_dir))
+  execute("git -C %s log -1" % (target_dir))
 
 def main():
   """Run the action."""
