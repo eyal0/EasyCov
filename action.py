@@ -76,12 +76,12 @@ def main():
       maybe_print("[command]Coverage is changed.", 1)
       git_cmd = "git -C %s" % (push_dir)
       execute("cp -f /tmp/coverage.bin.gz coverage.bin.gz")
-      execute(git_cmd + " add coverage.bin.gz")
       execute(git_cmd + ' config --global user.email ' +
               '"58579435+EasyCov-bot@users.noreply.github.com"')
       execute(git_cmd + ' config --global user.name "EasyCov Bot"')
       execute(git_cmd + ' checkout --force ' + github_event['ref'].replace('refs/heads/', ''))
-      execute(git_cmd + ' commit -a -m "Automated update of coverage.bin.gz"')
+      execute(git_cmd + " add coverage.bin.gz")
+      execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
       execute(git_cmd + ' push')
     else:
       maybe_print("[command]Coverage is unchanged.", 1)
