@@ -37,8 +37,10 @@ def execute(cmd, check=True):
 def git_clone_sha(sha, repo_url, github_token, target_dir):
   """Clone a single commit into the target_dir."""
   clone_url = repo_url.replace('https://', 'https://x-access-token:' + github_token + "@")
-  execute("git clone %s %s" % (clone_url, target_dir))
-  execute("git -C %s checkout --force %s" % (target_dir, sha))
+  execute("git init %s" % (target_dir))
+  execute("git -C %s remote add origin %s" % (target_dir, clone_url))
+  execute("git -C %s fetch --depth 1 origin %s" % (target_dir, sha))
+  execute("git -C %s checkout FETCH_HEAD" % (target_dir))
   execute("git -C %s log -1" % (target_dir))
 
 def main():
