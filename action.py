@@ -43,6 +43,44 @@ def git_clone_sha(sha, repo_url, github_token, target_dir):
   execute("git -C %s checkout FETCH_HEAD" % (target_dir))
   execute("git -C %s log -1" % (target_dir))
 
+def do_push(github_token, github_event):
+  maybe_print("[command]Detected Push Event.", 1)
+  push_dir = "/tmp/push"
+  clone_url = github_event['repository']['clone_url']
+  maybe_print("[command]Cloning branch.", 1)
+  git_clone_sha(github_event['after'], clone_url, github_token, push_dir)
+  coverage_bin = "/tmp/coverage.bin"
+  xml_coverage = os.getenv('INPUT_XML-COVERAGE')
+  if xml_coverage:
+    xml_coverage = "--xml " + xml_coverage
+  else:
+    xml_coverage = ""
+  lcov_coverage = os.getenv('INPUT_LCOV-COVERAGE')
+  if lcov_coverage:
+    lcov_coverage = "--lcov " + lcov_coverage
+  else:
+    lcov_coverage = ""
+  maybe_print("[command]Collecting coverage.", 1)
+
+  with open(coverage_bin, 'wb') as coverage_file:
+    coverage_file.write(execute("easycov convert %s" % " ".join((xml_coverage, lcov_coverage))))
+  execute("gzip -n %s" % (coverage_bin))
+  coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
+  if coverage_mismatch:
+    maybe_print("[command]Coverage is changed.", 1)
+    git_cmd = "git -C %s" % (push_dir)
+    execute("cp -f %s.gz %s" % (coverage_bin, os.path.join(push_dir, "coverage.bin.gz")))
+    execute(git_cmd + ' config --global user.email ' +
+            '"58579435+EasyCov-bot@users.noreply.github.com"')
+    execute(git_cmd + ' config --global user.name "EasyCov Bot"')
+    upstream_branch = github_event['ref'].replace('refs/heads/', '')
+    execute(git_cmd + ' checkout -b %s' % (upstream_branch))
+    execute(git_cmd + " add /tmp/push/coverage_bin.gz")
+    execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
+    execute(git_cmd + ' push origin HEAD:%s' % (upstream_branch))
+  else:
+    maybe_print("[command]Coverage is unchanged.", 1)
+
 def main():
   """Run the action."""
   github_event_path = os.getenv('GITHUB_EVENT_PATH')
@@ -51,42 +89,7 @@ def main():
   with open(github_event_path, 'r') as event_file:
     github_event = json.loads(event_file.read())
   if github_event_name == 'push':
-    maybe_print("[command]Detected Push Event.", 1)
-    push_dir = "/tmp/push"
-    clone_url = github_event['repository']['clone_url']
-    maybe_print("[command]Cloning branch.", 1)
-    git_clone_sha(github_event['after'], clone_url, github_token, push_dir)
-    coverage_bin = "/tmp/coverage.bin"
-    xml_coverage = os.getenv('INPUT_XML-COVERAGE')
-    if xml_coverage:
-      xml_coverage = "--xml " + xml_coverage
-    else:
-      xml_coverage = ""
-    lcov_coverage = os.getenv('INPUT_LCOV-COVERAGE')
-    if lcov_coverage:
-      lcov_coverage = "--lcov " + lcov_coverage
-    else:
-      lcov_coverage = ""
-    maybe_print("[command]Collecting coverage.", 1)
-
-    with open(coverage_bin, 'wb') as coverage_file:
-      coverage_file.write(execute("easycov convert %s" % " ".join((xml_coverage, lcov_coverage))))
-    execute("gzip -n %s" % (coverage_bin))
-    coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
-    if coverage_mismatch:
-      maybe_print("[command]Coverage is changed.", 1)
-      git_cmd = "git -C %s" % (push_dir)
-      execute("cp -f %s.gz %s" % (coverage_bin, os.path.join(push_dir, "coverage.bin.gz")))
-      execute(git_cmd + ' config --global user.email ' +
-              '"58579435+EasyCov-bot@users.noreply.github.com"')
-      execute(git_cmd + ' config --global user.name "EasyCov Bot"')
-      upstream_branch = github_event['ref'].replace('refs/heads/', '')
-      execute(git_cmd + ' checkout -b %s' % (upstream_branch))
-      execute(git_cmd + " add /tmp/push/coverage_bin.gz")
-      execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
-      execute(git_cmd + ' push origin HEAD:%s' % (upstream_branch))
-    else:
-      maybe_print("[command]Coverage is unchanged.", 1)
+    do_push(github_token, github_event)
 
 if __name__ == '__main__':
   main()
