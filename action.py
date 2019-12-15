@@ -76,7 +76,7 @@ def do_push(github_token, github_event):
     execute(git_cmd + ' config --global user.name "EasyCov Bot"')
     upstream_branch = github_event['ref'].replace('refs/heads/', '')
     execute(git_cmd + ' checkout -b %s' % (upstream_branch))
-    execute(git_cmd + " add /tmp/push/coverage_bin.gz")
+    execute(git_cmd + " add /tmp/push/coverage.bin.gz")
     execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
     execute(git_cmd + ' push origin HEAD:%s' % (upstream_branch))
   else:
