@@ -17,7 +17,5 @@ COPY . /root/EasyCov/
 RUN pip install /root/EasyCov
 RUN hash -r
 
-RUN mkdir -p /tmp/push
-
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
 ENTRYPOINT ["python", "/root/EasyCov/action.py"]
