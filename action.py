@@ -44,6 +44,7 @@ def git_clone_sha(sha, repo_url, github_token, target_dir):
   execute("git -C %s log -1" % (target_dir))
 
 def do_push(github_token, github_event):
+  """Process push events."""
   maybe_print("[command]Detected Push Event.", 1)
   push_dir = "/tmp/push"
   clone_url = github_event['repository']['clone_url']
