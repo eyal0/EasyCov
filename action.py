@@ -80,10 +80,11 @@ def main():
       execute(git_cmd + ' config --global user.email ' +
               '"58579435+EasyCov-bot@users.noreply.github.com"')
       execute(git_cmd + ' config --global user.name "EasyCov Bot"')
-      execute(git_cmd + ' checkout --force ' + github_event['ref'].replace('refs/heads/', ''))
+      upstream_branch = github_event['ref'].replace('refs/heads/', '')
+      execute(git_cmd + ' checkout -b %s' % (upstream_branch))
       execute(git_cmd + " add /tmp/push/coverage_bin.gz")
       execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
-      execute(git_cmd + ' push')
+      execute(git_cmd + ' push origin HEAD:%s' % (upstream_branch))
     else:
       maybe_print("[command]Coverage is unchanged.", 1)
 
