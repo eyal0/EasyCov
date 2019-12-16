@@ -49,7 +49,7 @@ jobs:
       run: |
         pip install --user wheel
         pip install --user pylint lcovparse
-        pylint easycov tests action.py
+        pylint easycov tests action.py bin/easycov
     - name: Collect coverage
       run: |
         pip install --user coverage
