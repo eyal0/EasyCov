@@ -270,11 +270,12 @@ class Coverage(object):
             hit)
     return self
 
-  def get_file_coverage(self, filename):
+  def get_file_coverage(self, filename, root_dir=None):
     """Return the coverage for the file.
 
     This returns a copy and modifying it won't change self.
     """
+    filename = _relative_filename(filename, root_dir)
     if not filename in self._coverage:
       return {}
     return copy(self._coverage[filename])

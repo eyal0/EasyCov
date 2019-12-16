@@ -43,7 +43,7 @@ def main():
     for xml in xmls:
       total_coverage += Coverage.from_xml_file(xml, args.root_dir)
   if args.annotate:
-    file_coverage = total_coverage.get_file_coverage(args.annotate.name)
+    file_coverage = total_coverage.get_file_coverage(args.annotate.name, args.root_dir)
     for line_number, line in enumerate(args.annotate):
       # Add 1 because line numbers in files traditionally start at 1.
       if line_number+1 in file_coverage:
