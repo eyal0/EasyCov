@@ -29,6 +29,11 @@ def _get_args():
       type=argparse.FileType('r'), nargs='+',
       action='append', default=[],
       help='python xml file(s)')
+  convert.add_argument(
+      '--root_dir', metavar='PATH',
+      type=str,
+      default=None,
+      help='Root dir of the source code')
   return parser.parse_args()
 
 def main():
@@ -37,10 +42,10 @@ def main():
     total_coverage = Coverage()
     for lcovs in args.lcov:
       for lcov in lcovs:
-        total_coverage += Coverage.from_lcov_file(lcov)
+        total_coverage += Coverage.from_lcov_file(lcov, args.root_dir)
     for xmls in args.xml:
       for xml in xmls:
-        total_coverage += Coverage.from_xml_file(xml)
+        total_coverage += Coverage.from_xml_file(xml, args.root_dir)
     sys.stdout.write(total_coverage.to_binary())
 
 if __name__ == '__main__':

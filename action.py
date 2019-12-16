@@ -43,6 +43,19 @@ def git_clone_sha(sha, repo_url, github_token, target_dir):
   execute("git -C %s checkout FETCH_HEAD" % (target_dir))
   execute("git -C %s log -1" % (target_dir))
 
+def translate_docker_path(path):
+  """Translate docker volumes to host path.
+
+  A path in docker may represent a different path on the host machine.
+  Translate a path inside docker to a path on the host.
+  """
+  with open("/proc/self/mountinfo", 'r') as mountinfo:
+    for mount in mountinfo:
+      host_dir, docker_dir = mount.split(" ")[3:5]
+      if path.startswith(docker_dir):
+        path = os.path.abspath(os.path.join(host_dir, path[len(docker_dir):]))
+  return path
+
 def do_push(github_token, github_event):
   """Process push events."""
   maybe_print("[command]Detected Push Event.", 1)
@@ -63,8 +76,16 @@ def do_push(github_token, github_event):
     lcov_coverage = ""
   maybe_print("[command]Collecting coverage.", 1)
 
+  root_dir = os.getenv('INPUT_ROOT-DIR')
+  if root_dir:
+    root_dir = os.path.join(os.getenv('GITHUB_WORKSPACE'), root_dir)
+    root_dir = os.path.abspath(root_dir)
+    root_dir = translate_docker_path(root_dir)
+    root_dir = "--root_dir " + root_dir
+
   with open(coverage_bin, 'wb') as coverage_file:
-    coverage_file.write(execute("easycov convert %s" % " ".join((xml_coverage, lcov_coverage))))
+    coverage_file.write(execute("easycov convert %s"
+                                % (" ".join((xml_coverage, lcov_coverage, root_dir)))))
   execute("gzip -n %s" % (coverage_bin))
   coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
   if coverage_mismatch:

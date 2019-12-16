@@ -21,6 +21,14 @@ inputs:
     required: false
     default: ''
   verbosity:
-    description: 'Set debug logging verbosity, 0-5.  0 is silent, 1 is normal, 2 is some more...'
+    description: >-
+      Set debug logging verbosity, 0-5.  0 is silent, 1 is normal (default),
+      2 is some more...
     required: false
     default: 1
+  root-dir:
+    description: >-
+      The path to the root of the coverage.  All coverage will be relative
+      to this directory.  Default is current directory.
+    required: false
+    default: "."
