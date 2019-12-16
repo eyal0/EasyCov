@@ -15,7 +15,7 @@ from copy import copy
 import lcovparse
 import pkg_resources
 
-def _relative_filename(filename, root_dir):
+def relative_filename(filename, root_dir):
   if not root_dir:
     return filename
   new_path = os.path.relpath(filename, root_dir)
@@ -51,7 +51,7 @@ class Coverage(object):
     coverage = defaultdict(lambda: defaultdict(Fraction))
     for file_coverage in json_cov:
       for line in file_coverage['lines']:
-        filename = _relative_filename(file_coverage['file'], root_dir)
+        filename = relative_filename(file_coverage['file'], root_dir)
         coverage[filename][int(line['line'])] = max(
             coverage[filename][int(line['line'])],
             min(int(line['hit']), 0))
@@ -82,7 +82,7 @@ class Coverage(object):
     coverage = defaultdict(lambda: defaultdict(Fraction))
     for class_ in root.iterfind('./packages/package/classes/class'):
       filename = os.path.join(source_dir, class_.get('filename'))
-      filename = _relative_filename(filename, root_dir)
+      filename = relative_filename(filename, root_dir)
       for line in class_.iterfind('./lines/line'):
         if line.get('branch', 'false') == 'true':
           # This is a branch line
@@ -270,12 +270,9 @@ class Coverage(object):
             hit)
     return self
 
-  def get_file_coverage(self, filename, root_dir=None):
+  def get_coverage(self):
     """Return the coverage for the file.
 
     This returns a copy and modifying it won't change self.
     """
-    filename = _relative_filename(filename, root_dir)
-    if not filename in self._coverage:
-      return {}
-    return copy(self._coverage[filename])
+    return copy(self._coverage)

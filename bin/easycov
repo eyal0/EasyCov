@@ -7,6 +7,7 @@ import argparse
 import sys
 
 from easycov.coverage import Coverage
+from easycov.coverage import relative_filename
 
 def _get_args():
   parser = argparse.ArgumentParser(
@@ -27,9 +28,9 @@ def _get_args():
       default=None,
       help='root dir of the source code')
   parser.add_argument(
-      '--annotate', metavar='SOURCE_FILE',
-      type=argparse.FileType('r'),
-      help="Annotate a file with coverage information")
+      '--annotate',
+      action='store_true',
+      help="Annotate all files coverage information")
   return parser.parse_args()
 
 def main():
@@ -43,16 +44,23 @@ def main():
     for xml in xmls:
       total_coverage += Coverage.from_xml_file(xml, args.root_dir)
   if args.annotate:
-    file_coverage = total_coverage.get_file_coverage(args.annotate.name, args.root_dir)
-    for line_number, line in enumerate(args.annotate):
-      # Add 1 because line numbers in files traditionally start at 1.
-      if line_number+1 in file_coverage:
-        sys.stdout.write("%d/%d %s" %
-                         (file_coverage[line_number+1].numerator,
-                          file_coverage[line_number+1].denominator,
-                          line))
-      else:
-        sys.stdout.write("    %s" % (line))
+    coverage = total_coverage.get_coverage()
+    for filename in coverage.keys():
+      if not coverage[filename]:
+        continue
+      file_coverage = coverage[filename]
+      with open(relative_filename(filename, args.root_dir)) as lines:
+        new_lines = []
+        for line_number, line in enumerate(lines):
+          # Add 1 because line numbers in files traditionally start at 1.
+          if line_number+1 in file_coverage:
+            new_lines.append("%3d %s" %
+                             (float(file_coverage[line_number+1])*100,
+                              line))
+          else:
+            new_lines.append("    " + line)
+      with open(relative_filename(filename, args.root_dir), 'w') as new_file:
+        new_file.write("".join(new_lines))
   else:
     sys.stdout.write(total_coverage.to_binary())
 
