@@ -84,7 +84,7 @@ def do_push(github_token, github_event):
     root_dir = "--root_dir " + root_dir
 
   with open(coverage_bin, 'wb') as coverage_file:
-    coverage_file.write(execute("easycov convert %s"
+    coverage_file.write(execute("easycov %s"
                                 % (" ".join((xml_coverage, lcov_coverage, root_dir)))))
   execute("gzip -n %s" % (coverage_bin))
   coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)

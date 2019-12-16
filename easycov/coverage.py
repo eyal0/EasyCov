@@ -269,3 +269,12 @@ class Coverage(object):
             self._coverage[filename][line],
             hit)
     return self
+
+  def get_file_coverage(self, filename):
+    """Return the coverage for the file.
+
+    This returns a copy and modifying it won't change self.
+    """
+    if not filename in self._coverage:
+      return {}
+    return copy(self._coverage[filename])

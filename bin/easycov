@@ -11,41 +11,49 @@ from easycov.coverage import Coverage
 def _get_args():
   parser = argparse.ArgumentParser(
       description='Process coverage.')
-  subparsers = parser.add_subparsers(
-      help='sub-command help',
-      dest='subcommand')
-
-  # create the parser for the "convert" command
-  convert = subparsers.add_parser(
-      'convert',
-      help='Convert generated coverage to internal format.')
-  convert.add_argument(
+  parser.add_argument(
       '--lcov', metavar='LCOV_FILE',
       type=argparse.FileType('r'), nargs='+',
       action='append', default=[],
-      help='lcov file(s)')
-  convert.add_argument(
+      help='add lcov file(s) to coverage')
+  parser.add_argument(
       '--xml', metavar='XML_FILE',
       type=argparse.FileType('r'), nargs='+',
       action='append', default=[],
-      help='python xml file(s)')
-  convert.add_argument(
+      help='add cobertura xml file(s) to coverage')
+  parser.add_argument(
       '--root_dir', metavar='PATH',
       type=str,
       default=None,
-      help='Root dir of the source code')
+      help='root dir of the source code')
+  parser.add_argument(
+      '--annotate', metavar='SOURCE_FILE',
+      type=argparse.FileType('r'),
+      help="Annotate a file with coverage information")
   return parser.parse_args()
 
 def main():
+  """Run easycov."""
   args = _get_args()
-  if args.subcommand == 'convert':
-    total_coverage = Coverage()
-    for lcovs in args.lcov:
-      for lcov in lcovs:
-        total_coverage += Coverage.from_lcov_file(lcov, args.root_dir)
-    for xmls in args.xml:
-      for xml in xmls:
-        total_coverage += Coverage.from_xml_file(xml, args.root_dir)
+  total_coverage = Coverage()
+  for lcovs in args.lcov:
+    for lcov in lcovs:
+      total_coverage += Coverage.from_lcov_file(lcov, args.root_dir)
+  for xmls in args.xml:
+    for xml in xmls:
+      total_coverage += Coverage.from_xml_file(xml, args.root_dir)
+  if args.annotate:
+    file_coverage = total_coverage.get_file_coverage(args.annotate.name)
+    for line_number, line in enumerate(args.annotate):
+      # Add 1 because line numbers in files traditionally start at 1.
+      if line_number+1 in file_coverage:
+        sys.stdout.write("%d/%d %s" %
+                         (file_coverage[line_number+1].numerator,
+                          file_coverage[line_number+1].denominator,
+                          line))
+      else:
+        sys.stdout.write("    %s" % (line))
+  else:
     sys.stdout.write(total_coverage.to_binary())
 
 if __name__ == '__main__':
