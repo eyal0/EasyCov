@@ -16,6 +16,11 @@ import lcovparse
 import pkg_resources
 
 def relative_filename(filename, root_dir):
+  """Get the path relative to root_dir unless it's not a subdir.
+
+  If the filename is not a sibsdirectory of root_dir or if root_dir is None or
+  empty, the original filename is returned.
+  """
   if not root_dir:
     return filename
   new_path = os.path.relpath(filename, root_dir)
