@@ -7,6 +7,8 @@ import os
 import subprocess
 import shlex
 from inspect import getframeinfo, stack
+from easycov.coverage import Coverage
+from easycov.coverage import relative_filename
 
 def maybe_print(text, level):
   """Print a string only if the verbosity is high enough."""
@@ -56,6 +58,25 @@ def translate_docker_path(path):
         path = os.path.abspath(os.path.join(host_dir, path[len(docker_dir):]))
   return path
 
+def annotate(coverage, root_dir):
+  """Modify the files in a checkout to add annotations to them."""
+  for filename in coverage.keys():
+    if not coverage[filename]:
+      continue
+    file_coverage = coverage[filename]
+    with open(relative_filename(filename, root_dir)) as lines:
+      new_lines = []
+      for line_number, line in enumerate(lines):
+        # Add 1 because line numbers in files traditionally start at 1.
+        if line_number+1 in file_coverage:
+          new_lines.append("%3d %s" %
+                           (float(file_coverage[line_number+1])*100,
+                            line))
+        else:
+          new_lines.append("    " + line)
+    with open(relative_filename(filename, root_dir), 'w') as new_file:
+      new_file.write("".join(new_lines))
+
 def do_push(github_token, github_event):
   """Process push events."""
   maybe_print("[command]Detected Push Event.", 1)
@@ -64,28 +85,24 @@ def do_push(github_token, github_event):
   maybe_print("[command]Cloning branch.", 1)
   git_clone_sha(github_event['after'], clone_url, github_token, push_dir)
   coverage_bin = "/tmp/coverage.bin"
-  xml_coverage = os.getenv('INPUT_XML-COVERAGE')
-  if xml_coverage:
-    xml_coverage = "--xml " + xml_coverage
-  else:
-    xml_coverage = ""
-  lcov_coverage = os.getenv('INPUT_LCOV-COVERAGE')
-  if lcov_coverage:
-    lcov_coverage = "--lcov " + lcov_coverage
-  else:
-    lcov_coverage = ""
-  maybe_print("[command]Collecting coverage.", 1)
-
+  total_coverage = Coverage()
   root_dir = os.getenv('INPUT_ROOT-DIR')
   if root_dir:
     root_dir = os.path.join(os.getenv('GITHUB_WORKSPACE'), root_dir)
     root_dir = os.path.abspath(root_dir)
     root_dir = translate_docker_path(root_dir)
-    root_dir = "--root_dir " + root_dir
+  xml_coverage = os.getenv('INPUT_XML-COVERAGE')
+  if xml_coverage:
+    for xml_filename in xml_coverage.split(" "):
+      total_coverage += Coverage.from_xml(xml_filename, root_dir)
+  lcov_coverage = os.getenv('INPUT_LCOV-COVERAGE')
+  if lcov_coverage:
+    for lcov_filename in lcov_coverage.split(" "):
+      total_coverage += Coverage.from_lcov(lcov_filename, root_dir)
+  maybe_print("[command]Collecting coverage.", 1)
 
   with open(coverage_bin, 'wb') as coverage_file:
-    coverage_file.write(execute("easycov %s"
-                                % (" ".join((xml_coverage, lcov_coverage, root_dir)))))
+    coverage_file.write(total_coverage.to_binary())
   execute("gzip -n %s" % (coverage_bin))
   coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
   if coverage_mismatch:
