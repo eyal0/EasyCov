@@ -281,3 +281,13 @@ class Coverage(object):
     This returns a copy and modifying it won't change self.
     """
     return copy(self._coverage)
+
+  def get_ratio(self):
+    """Returns the coverage ratio, from 1 to 1."""
+    actual = 0
+    expected = 0
+    for _, file_coverage in self._coverage.iteritems():
+      for _, hit in file_coverage.iteritems():
+        expected += 1
+        actual += hit
+    return 1 if expected == 0 else actual/expected
