@@ -275,6 +275,30 @@ class Coverage(object):
             hit)
     return self
 
+  def annotate(self, root_dir):
+    """Modify the files in a checkout to add annotations to them.
+
+    When we create a coverage file, we strip away the root_dir.  But when we
+    apply a coverage file, we prepend the root_dir to the filenames in the
+    coverage.
+    """
+    for filename in self._coverage.keys():
+      if not self._coverage[filename]:
+        continue
+      file_coverage = self._coverage[filename]
+      absolute_filename = os.path.abspath(os.path.join(root_dir, filename))
+      with open(absolute_filename) as lines:
+        new_lines = []
+        for line_number, line in enumerate(lines, 1): # Line numbers start at 1.
+          if line_number in file_coverage:
+            new_lines.append("%3d %s" %
+                             (file_coverage[line_number]*100,
+                              line))
+          else:
+            new_lines.append("    " + line)
+      with open(absolute_filename, 'w') as new_file:
+        new_file.write("".join(new_lines))
+
   def get_coverage(self):
     """Return the coverage for the file.
 
