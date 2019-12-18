@@ -133,8 +133,7 @@ def do_pull_request(github_token, github_event):
   execute("cp -f %s /tmp/coverage.bin.gz" % (os.path.join(pr_dir, 'coverage.bin.gz')))
   execute("gunzip /tmp/coverage.bin.gz")
   coverage_bin = "/tmp/coverage.bin"
-  with open(coverage_bin, 'rb') as coverage_file:
-    base_coverage = Coverage.from_binary(coverage_file.read())
+  base_coverage = Coverage.from_binary_filename(coverage_bin)
 
   # Make an annotated version of the base.
   root_dir = os.getenv('INPUT_ROOT-DIR')
