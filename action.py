@@ -24,7 +24,8 @@ def execute(cmd, check=True):
   maybe_print("[command]" + cmd, 2)
   try:
     output = subprocess.check_output(shlex.split(cmd), stderr=subprocess.STDOUT)
-    maybe_print(output, 3)
+    if output:
+      maybe_print(output, 3)
   except subprocess.CalledProcessError as exc:
     maybe_print(exc.output, 3)
     if check:
