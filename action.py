@@ -144,7 +144,7 @@ def do_pull_request(github_token, github_event):
   execute(git_cmd + 'config --global user.email ' +
           '"58579435+EasyCov-bot@users.noreply.github.com"')
   execute(git_cmd + 'config --global user.name "EasyCov Bot"')
-  execute(git_cmd + "commit -a --allow-empty --allow-empty-message")
+  execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_base_sha = execute(git_cmd + "rev-parse HEAD")
 
   # Get the coverage from the new sha.
@@ -153,7 +153,7 @@ def do_pull_request(github_token, github_event):
   # Make an annotated version of the merge.
   execute(git_cmd + 'checkout %s' % (merge_sha))
   merge_coverage.annotate(root_dir)
-  execute(git_cmd + "commit -a --allow-empty --allow-empty-message")
+  execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
 
   execute(git_cmd + ("diff %s %s" % (annotated_base_sha, annotated_merge_sha)))
