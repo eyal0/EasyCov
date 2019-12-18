@@ -92,6 +92,7 @@ def do_push(github_token, github_event):
     root_dir = os.path.abspath(root_dir)
     root_dir = translate_docker_path(root_dir)
   xml_coverage = os.getenv('INPUT_XML-COVERAGE')
+  maybe_print("[command]Collecting coverage.", 1)
   if xml_coverage:
     for xml_filename in xml_coverage.split(" "):
       total_coverage += Coverage.from_xml(xml_filename, root_dir)
@@ -99,8 +100,7 @@ def do_push(github_token, github_event):
   if lcov_coverage:
     for lcov_filename in lcov_coverage.split(" "):
       total_coverage += Coverage.from_lcov(lcov_filename, root_dir)
-  maybe_print("[command]Collecting coverage.", 1)
-
+  maybe_print(total_coverage.to_json(indent=2), 3)
   with open(coverage_bin, 'wb') as coverage_file:
     coverage_file.write(total_coverage.to_binary())
   execute("gzip -n %s" % (coverage_bin))
