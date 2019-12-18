@@ -80,6 +80,15 @@ class CoverageTests(unittest.TestCase):
     roundtrip = Coverage.from_binary(result.to_binary())
     self.assertEqual(roundtrip, result)
 
+  def test_roundtrip_binary(self):
+    """Test roundtrip with binary, from and then to."""
+    path = os.path.dirname(os.path.realpath(__file__))
+    binary_filename = os.path.join(path, "coverage.bin")
+    result = Coverage.from_binary_filename(binary_filename)
+    roundtrip = result.to_binary()
+    with open(binary_filename, 'rb') as binary_file:
+      self.assertEqual(roundtrip, binary_file.read())
+
   def test_roundtrip_lcov_json(self):
     """Test roundtrip with lcov and json."""
     path = os.path.dirname(os.path.realpath(__file__))

@@ -201,6 +201,12 @@ class Coverage(object):
     return result
 
   @staticmethod
+  def from_binary_filename(filename):
+    """Reads the coverage from the binary format described in to_binary."""
+    with open(filename, 'r') as current_file:
+      return Coverage.from_binary(bytearray(current_file.read()))
+
+  @staticmethod
   def from_binary(bin_coverage):
     """Reads the coverage from the binary format described in to_binary."""
     pos = 0
