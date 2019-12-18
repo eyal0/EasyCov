@@ -48,12 +48,12 @@ jobs:
     - name: Lint
       run: |
         pip install --user wheel
-        pip install --user pylint lcovparse
+        pip install --user pylint
+        pip install --user .
         pylint easycov tests action.py
     - name: Collect coverage
       run: |
         pip install --user coverage
-        pip install --user .
         hash -r
         coverage erase
         coverage run -m unittest discover
