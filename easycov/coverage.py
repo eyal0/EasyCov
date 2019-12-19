@@ -6,11 +6,9 @@ from __future__ import print_function
 import os
 import xml.etree.ElementTree as ET
 import re
-from collections import defaultdict
-from fractions import (Fraction, gcd)
+from collections import defaultdict, namedtuple
 import json
 import math
-import itertools
 from copy import copy
 import lcovparse
 import pkg_resources
@@ -28,11 +26,29 @@ def relative_filename(filename, root_dir):
     return new_path
   return filename
 
+class Hits(namedtuple("Hits", ["hits", "total"])):
+  """Stores the hit count of a line.
+
+  The total should be at least 1 and the hits should be between 0 and the total.
+  """
+  def __float__(self):
+    return self.hits / self.total
+  def __new__(cls, hits=0, total=1):
+    return super(Hits, cls).__new__(cls, hits, total)
+  def __sub__(self, other):
+    return float(self) - float(other)
+  def __eq__(self, other):
+    return isinstance(other, Hits) and self.hits == other.hits and self.total == other.total
+  def __cmp__(self, other):
+    return cmp(float(self), float(other))
+  def __ne__(self, other):
+    return not self == other
+
 class Coverage(object):
   """Coverage represents a coverage report of many files."""
 
   def __init__(self, coverage=None, version=None):
-    self._coverage = coverage or defaultdict(lambda: defaultdict(Fraction))
+    self._coverage = coverage or defaultdict(lambda: defaultdict(Hits))
     self._version = version or pkg_resources.require("EasyCov")[0].version
 
   @staticmethod
@@ -53,12 +69,13 @@ class Coverage(object):
     root_dir prefix removed from them
     """
     json_cov = lcovparse.lcovparse(current_file.read())
-    coverage = defaultdict(lambda: defaultdict(Fraction))
+    coverage = defaultdict(lambda: defaultdict(Hits))
     for file_coverage in json_cov:
       for line in file_coverage['lines']:
         filename = relative_filename(file_coverage['file'], root_dir)
+        current_hits = coverage[filename][int(line['line'])]
         coverage[filename][int(line['line'])] = max(
-            coverage[filename][int(line['line'])],
+            current_hits,
             min(int(line['hit']), 0))
     return Coverage(coverage)
 
@@ -84,7 +101,7 @@ class Coverage(object):
     for source in root.iterfind('./sources/source'):
       source_dir = source.text
 
-    coverage = defaultdict(lambda: defaultdict(Fraction))
+    coverage = defaultdict(lambda: defaultdict(Hits))
     for class_ in root.iterfind('./packages/package/classes/class'):
       filename = os.path.join(source_dir, class_.get('filename'))
       filename = relative_filename(filename, root_dir)
@@ -95,11 +112,11 @@ class Coverage(object):
           matches = re.match(r'\d+%\s+\((\d+)/(\d+)\)', condition_coverage)
           coverage[filename][int(line.get('number'))] = max(
               coverage[filename][int(line.get('number'))],
-              Fraction(int(matches.group(1)), int(matches.group(2))))
+              Hits(int(matches.group(1)), int(matches.group(2))))
         else:
           coverage[filename][int(line.get('number'))] = max(
               coverage[filename][int(line.get('number'))],
-              int(line.get('hits', 0)))
+              Hits(int(line.get('hits', 0)), 1))
     return Coverage(coverage)
 
   def to_json(self, *args, **kwargs):
@@ -113,7 +130,7 @@ class Coverage(object):
     """Reads coverage from a json string and returns a new Coverage object."""
     json_in = json.loads(json_string)
     version = json_in['version']
-    coverage = defaultdict(lambda: defaultdict(Fraction), json_in['coverage'])
+    coverage = defaultdict(lambda: defaultdict(Hits), json_in['coverage'])
     for filename in coverage:
       # Don't use iterkeys because we are modifying the dictionary.
       for line_number in coverage[filename].keys():
@@ -124,29 +141,21 @@ class Coverage(object):
   def _value_to_bits(val):
     """Convert a value to a byte that represents that value between 0 and 1.
 
-    Return value 0 means that v was None.  1 is 0, 2 is 1, 3 is 1/2, 4 is 1/3, 5
-    is 2/3, etc.
+    Return value 0 means that v was None.
+    1 is 0/1 1
+    2 is 1/1
+    3 is 0/2 3
+    4 is 1/2
+    5 is 2/2
+    6 is 0/3 6
+    7 is 1/3
+    8 is 2/3
+    9 is 3/3
+    etc.
     """
     if val is None:
       return 0
-    bits = 1
-    best_bits = 0
-    best_value = 0
-    for denom in itertools.count():
-      for numer in xrange(denom+1):
-        if gcd(numer, denom) != 1:
-          continue
-        current = Fraction(numer, denom)
-        if float(val) == float(current):
-          return bits
-        if abs(val - current) < abs(val - best_value):
-          best_bits = bits
-          best_value = current
-        bits += 1
-        if bits >= 256:
-          # This is already too big to fit in a byte so return the best so far.
-          return best_bits
-    return best_bits
+    return (val.total * (val.total+1))//2 + val.hits
 
   @staticmethod
   def _bits_to_value(bits):
@@ -157,15 +166,9 @@ class Coverage(object):
     """
     if bits == 0:
       return None
-    current = 1
-    for denom in itertools.count():
-      for numer in xrange(denom+1):
-        if gcd(numer, denom) != 1:
-          continue
-        if current == bits:
-          return Fraction(numer, denom)
-        current += 1
-    return None # Unreachable
+    denom = int(math.floor((math.sqrt(1+8*bits) - 1)/2)) # Quadratic formula of denom above.
+    numer = bits - Coverage._value_to_bits(Hits(0, denom))
+    return Hits(numer, denom)
 
   def to_binary(self):
     """Returns the coverage in a much-compressed string format.
@@ -215,7 +218,7 @@ class Coverage(object):
       version += chr(bin_coverage[pos])
       pos += 1
     pos += 1
-    coverage = defaultdict(lambda: defaultdict(Fraction))
+    coverage = defaultdict(lambda: defaultdict(Hits))
     while pos < len(bin_coverage):
       filename = ""
       while bin_coverage[pos] != 0:
@@ -264,7 +267,7 @@ class Coverage(object):
     return not self.__eq__(other)
 
   def __repr__(self):
-    return self.to_json(indent=2, sort_keys=True)
+    return "Coverage(coverage=%s, version=%s)" % (self._coverage, self._version)
 
   def __iadd__(self, other):
     # pylint: disable=protected-access
@@ -297,8 +300,9 @@ class Coverage(object):
         new_lines = []
         for line_number, line in enumerate(lines, 1): # Line numbers start at 1.
           if line_number in file_coverage:
-            new_lines.append("%3d %s" %
-                             (file_coverage[line_number]*100,
+            new_lines.append("%d/%d %s" %
+                             (file_coverage[line_number].hits,
+                              file_coverage[line_number].total,
                               line))
           elif line == "\n":
             new_lines.append(line)

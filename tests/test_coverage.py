@@ -6,7 +6,7 @@ import os
 import unittest
 
 from tests.context import easycov # pylint: disable=unused-import
-from easycov.coverage import Coverage
+from easycov.coverage import Coverage, Hits
 
 class CoverageTests(unittest.TestCase):
   """Test Coverage class."""
@@ -132,6 +132,17 @@ class CoverageTests(unittest.TestCase):
             0: 1,
             1: 0.5
         }}))
+
+  def test_coverage_bits(self):
+    """Check roundtrip from Hits to bits."""
+    actual = None
+    expected = Coverage._bits_to_value(Coverage._value_to_bits(actual)) # pylint: disable=protected-access
+    self.assertEqual(actual, expected)
+    for denom in xrange(1, 10):
+      for numer in xrange(denom+1):
+        expected = Hits(numer, denom)
+        actual = Coverage._bits_to_value(Coverage._value_to_bits(expected)) # pylint: disable=protected-access
+        self.assertEqual(actual, expected)
 
 if __name__ == '__main__':
   unittest.main()
