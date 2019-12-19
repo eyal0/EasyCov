@@ -1,7 +1,7 @@
 # Container image that runs your code
 FROM alpine
 
-RUN apk --update --no-cache add git wget python py-pip npm perl
+RUN apk --update --no-cache add git python py-pip npm perl
 RUN pip install coverage wheel colorama
 RUN npm install -g diff-so-fancy
 RUN hash -r
