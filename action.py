@@ -77,7 +77,6 @@ def collect_coverage():
   if lcov_coverage:
     for lcov_filename in lcov_coverage.split(" "):
       total_coverage += Coverage.from_lcov(lcov_filename, root_dir)
-  maybe_print(total_coverage.to_json(indent=2), 3)
   return total_coverage
 
 def do_push(github_token, github_event):
@@ -127,7 +126,7 @@ def do_pull_request(github_token, github_event):
   # merge_sha and trust that at depth 2, the base_sha will be there.
   git_fetch(merge_sha, pr_dir, depth=2)
   # base_sha is the commit that we want to merge onto.
-  base_sha = execute(git_cmd + ('rev-parse %s' % (merge_sha)))
+  base_sha = execute(git_cmd + ('rev-parse %s^' % (merge_sha))).strip()
 
   execute(git_cmd + 'checkout %s' % (base_sha))
   execute("cp -f %s /tmp/coverage.bin.gz" % (os.path.join(pr_dir, 'coverage.bin.gz')))
@@ -145,7 +144,7 @@ def do_pull_request(github_token, github_event):
           '"58579435+EasyCov-bot@users.noreply.github.com"')
   execute(git_cmd + 'config --global user.name "EasyCov Bot"')
   execute(git_cmd + "commit -a --allow-empty -m annotated")
-  annotated_base_sha = execute(git_cmd + "rev-parse HEAD")
+  annotated_base_sha = execute(git_cmd + "rev-parse HEAD").strip()
 
   # Get the coverage from the new sha.
   merge_coverage = collect_coverage()
