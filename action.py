@@ -4,9 +4,9 @@
 from __future__ import print_function
 import json
 import os
-import subprocess
 import shlex
 from inspect import getframeinfo, stack
+from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
 from easycov.coverage import Coverage
 
 def maybe_print(text, level):
@@ -22,10 +22,10 @@ def execute(cmd, check=True):
   """
   maybe_print("[command]" + cmd, 2)
   try:
-    output = subprocess.check_output(shlex.split(cmd), stderr=subprocess.STDOUT)
+    output = check_output(shlex.split(cmd), stderr=STDOUT)
     if output:
       maybe_print(output, 3)
-  except subprocess.CalledProcessError as exc:
+  except CalledProcessError as exc:
     maybe_print(exc.output, 3)
     if check:
       caller = getframeinfo(stack()[1][0])
@@ -38,6 +38,7 @@ def execute(cmd, check=True):
 
 def git_clone(repo_url, github_token, target_dir):
   """Clone a repo into the target_dir."""
+  maybe_print("[command]Cloning branch.", 1)
   clone_url = repo_url.replace('https://', 'https://x-access-token:' + github_token + "@")
   execute("git init %s" % (target_dir))
   execute("git -C %s remote add origin %s" % (target_dir, clone_url))
@@ -84,7 +85,6 @@ def do_push(github_token, github_event):
   maybe_print("[command]Detected Push Event.", 1)
   push_dir = "/tmp/push"
   clone_url = github_event['repository']['clone_url']
-  maybe_print("[command]Cloning branch.", 1)
   git_clone(clone_url, github_token, push_dir)
   push_sha = github_event['after']
   git_fetch(push_sha, push_dir)
@@ -96,9 +96,6 @@ def do_push(github_token, github_event):
   if coverage_mismatch:
     maybe_print("[command]Coverage is changed.", 1)
     git_cmd = "git -C %s " % (push_dir)
-    execute(git_cmd + 'config --global user.email ' +
-            '"58579435+EasyCov-bot@users.noreply.github.com"')
-    execute(git_cmd + 'config --global user.name "EasyCov Bot"')
     upstream_branch = github_event['ref'].replace('refs/heads/', '')
     execute(git_cmd + 'checkout %s' % (push_sha))
     execute("cp -f %s.gz %s" % (coverage_bin, os.path.join(push_dir, "coverage.bin.gz")))
@@ -108,12 +105,28 @@ def do_push(github_token, github_event):
   else:
     maybe_print("[command]Coverage is unchanged.", 1)
 
+def color_diff(path, base_sha, change_sha):
+  """git giff the base_sha to change_sha in the path, colorizing the output."""
+  diff = execute("git -C %s diff --color %s %s" %
+                 (path, base_sha, change_sha))
+  diff_so_fancy = Popen(['diff-so-fancy'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
+  output, stderr = diff_so_fancy.communicate(input=diff)
+  if output:
+    maybe_print(output, 3)
+  if stderr:
+    maybe_print(stderr, 3)
+  if diff_so_fancy.returncode:
+    caller = getframeinfo(stack()[1][0])
+    filename = caller.filename.replace("/root/EasyCov", "")
+    maybe_print("::error file=%s,line=%d::%s" % (filename, caller.lineno, stderr), 1)
+    raise CalledProcessError(diff_so_fancy.returncode, "diff-so-fancy", output)
+  return output
+
 def do_pull_request(github_token, github_event):
   """Process pull request events."""
   maybe_print("[command]Detected Pull Request Event.", 1)
   pr_dir = "/tmp/pr"
   clone_url = github_event['pull_request']['base']['repo']['clone_url']
-  maybe_print("[command]Cloning branch.", 1)
   # merge_sha is the one that would be potentially merged.
   merge_sha = os.getenv('GITHUB_SHA')
   # pr_sha is the head of the pull request.
@@ -131,31 +144,24 @@ def do_pull_request(github_token, github_event):
   execute(git_cmd + 'checkout %s' % (base_sha))
   execute("cp -f %s /tmp/coverage.bin.gz" % (os.path.join(pr_dir, 'coverage.bin.gz')))
   execute("gunzip /tmp/coverage.bin.gz")
-  coverage_bin = "/tmp/coverage.bin"
-  base_coverage = Coverage.from_binary_filename(coverage_bin)
 
-  # Make an annotated version of the base.
   root_dir = os.getenv('INPUT_ROOT-DIR')
   if root_dir:
     root_dir = os.path.join(pr_dir, root_dir)
     root_dir = os.path.abspath(root_dir)
-  base_coverage.annotate(root_dir)
-  execute(git_cmd + 'config --global user.email ' +
-          '"58579435+EasyCov-bot@users.noreply.github.com"')
-  execute(git_cmd + 'config --global user.name "EasyCov Bot"')
+
+  # Make an annotated version of the base.
+  Coverage.from_binary_filename("/tmp/coverage.bin").annotate(root_dir)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_base_sha = execute(git_cmd + "rev-parse HEAD").strip()
 
-  # Get the coverage from the new sha.
-  merge_coverage = collect_coverage()
-
   # Make an annotated version of the merge.
   execute(git_cmd + 'checkout %s' % (merge_sha))
-  merge_coverage.annotate(root_dir)
+  collect_coverage().annotate(root_dir)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
 
-  execute(git_cmd + ("diff %s %s" % (annotated_base_sha, annotated_merge_sha)))
+  maybe_print(color_diff(pr_dir, annotated_base_sha, annotated_merge_sha), 1)
 
   #coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
   #if coverage_mismatch:
