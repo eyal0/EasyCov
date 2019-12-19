@@ -300,6 +300,8 @@ class Coverage(object):
             new_lines.append("%3d %s" %
                              (file_coverage[line_number]*100,
                               line))
+          elif line == "\n":
+            new_lines.append(line)
           else:
             new_lines.append("    " + line)
       with open(absolute_filename, 'w') as new_file:
