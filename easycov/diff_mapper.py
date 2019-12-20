@@ -101,3 +101,6 @@ class DiffMapper(object):
     return type('', (object,), {
         '__getitem__': lambda _, line_number: _get(self._mapping[filename], line_number)
     })()
+
+  def __repr__(self):
+    return "DiffMapper(mapping=%s)" % repr(self._mapping)
