@@ -4,9 +4,11 @@
 from __future__ import print_function
 import json
 import os
+import re
 import shlex
 from inspect import getframeinfo, stack
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
+import colorama
 from easycov.coverage import Coverage
 
 def maybe_print(text, level):
@@ -107,7 +109,7 @@ def do_push(github_token, github_event):
 
 def color_diff(path, base_sha, change_sha):
   """git giff the base_sha to change_sha in the path, colorizing the output."""
-  diff = execute("git -C %s diff --color %s %s" %
+  diff = execute("git -C %s diff --color=never %s %s" %
                  (path, base_sha, change_sha))
   diff_so_fancy = Popen(['diff-so-fancy'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
   output, stderr = diff_so_fancy.communicate(input=diff)
@@ -121,6 +123,28 @@ def color_diff(path, base_sha, change_sha):
     maybe_print("::error file=%s,line=%d::%s" % (filename, caller.lineno, stderr), 1)
     raise CalledProcessError(diff_so_fancy.returncode, "diff-so-fancy", output)
   return output
+
+def highlight_coverage_line(fancy_line):
+  """Highlight the start of a line if it starts with a ratio like 1/2.
+
+  Whatever ANSI style codes are present at the start of the string are saved and
+  used after the ratio is printed.  The ratio is printed in red background for 0
+  and green background for 1.  The rest have yellow backgrounds.
+  """
+  match_object = re.match(
+      r"^(?P<style>(\x1B\[[0-9;]*m)*)(?P<numer>\d+)/(?P<denom>\d+)(?P<end> .*)$", fancy_line)
+  if not match_object:
+    return fancy_line
+  if int(match_object.group('numer')) == int(match_object.group('denom')):
+    background = colorama.Back.GREEN
+  elif int(match_object.group('numer')) == 0:
+    background = colorama.Back.RED
+  else:
+    background = colorama.Back.YELLOW
+  return (colorama.Fore.BLACK + background + colorama.Style.BRIGHT + # Colorize
+          match_object.group('numer') + "/" + match_object.group('denom') + # coverage ratio
+          colorama.Style.RESET_ALL + match_object.group('style') + # back to original
+          match_object.group('end')) # all the rest.
 
 def do_pull_request(github_token, github_event):
   """Process pull request events."""
@@ -160,9 +184,12 @@ def do_pull_request(github_token, github_event):
   collect_coverage().annotate(root_dir)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
-
-  maybe_print(color_diff(pr_dir, annotated_base_sha, annotated_merge_sha), 1)
-
+  maybe_print(
+      "\n".join(highlight_coverage_line(line)
+                for line in
+                color_diff(
+                    pr_dir, annotated_base_sha, annotated_merge_sha).split("\n")),
+      1)
   #coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
   #if coverage_mismatch:
   #  maybe_print("[command]Coverage is changed.", 1)

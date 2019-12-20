@@ -9,5 +9,5 @@ setup(
     packages=find_packages(exclude=["tests",]),
     license='MIT',
     long_description=open('README.md').read(),
-    install_requires=['lcovparse', 'unidiff'],
+    install_requires=['lcovparse', 'unidiff', 'colorama'],
 )

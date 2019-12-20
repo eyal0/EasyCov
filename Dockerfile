@@ -2,7 +2,7 @@
 FROM alpine
 
 RUN apk --update --no-cache add git python py-pip npm perl
-RUN pip install coverage wheel colorama
+RUN pip install coverage wheel colorama unidiff
 RUN npm install -g diff-so-fancy
 RUN hash -r
 RUN git config --system user.email "58579435+EasyCov-bot@users.noreply.github.com"
@@ -27,4 +27,5 @@ RUN pip install /root/EasyCov
 RUN hash -r
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["python", "/root/EasyCov/action.py"]
+# TODO: This speeds up debugging.  Change the entrypoint back to /root/EasyCov/action.py
+ENTRYPOINT ["python", "/github/workspace/action.py"]
