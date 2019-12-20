@@ -267,7 +267,7 @@ class Coverage(object):
     return not self.__eq__(other)
 
   def __repr__(self):
-    return "Coverage(coverage=%s, version=%s)" % (self._coverage, self._version)
+    return "Coverage(coverage=%s, version=%s)" % (repr(self._coverage), repr(self._version))
 
   def __iadd__(self, other):
     # pylint: disable=protected-access
