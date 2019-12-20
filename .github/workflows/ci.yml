@@ -55,7 +55,7 @@ jobs:
         pip install --user wheel
         pip install --user pylint
         pip install --user .
-        pylint easycov tests action.py
+        pylint easycov tests *.py
     - name: Collect coverage
       run: |
         pip install --user coverage
