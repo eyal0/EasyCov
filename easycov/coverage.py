@@ -311,12 +311,18 @@ class Coverage(object):
       with open(absolute_filename, 'w') as new_file:
         new_file.write("".join(new_lines))
 
-  def get_coverage(self):
-    """Return the coverage for the file.
+  def get_coverage(self, filename=None, line_number=None):
+    """Return the coverage, either all of it or for one file or one line.
 
     This returns a copy and modifying it won't change self.
     """
-    return copy(self._coverage)
+    if filename is None:
+      return deepcopy(self._coverage)
+    if line_number is None:
+      return deepcopy(self._coverage[filename])
+    if not line_number in self._coverage[filename]:
+      return None
+    return deepcopy(self._coverage[filename][line_number])
 
   def get_ratio(self):
     """Returns the coverage ratio, from 1 to 1."""
