@@ -36,9 +36,28 @@ class DiffMapper(object):
     This fills self._mapping with a mapping for each file the represents that
     map from target filename and line number to source filename and line number.
     """
-    patch = PatchSet.from_filename(filename)
+    patchset = PatchSet.from_filename(filename)
+    return DiffMapper.from_patchset(patchset)
+
+  @staticmethod
+  def from_string(text):
+    """Reads diff from the string provided.
+
+    This fills self._mapping with a mapping for each file the represents that
+    map from target filename and line number to source filename and line number.
+    """
+    patchset = PatchSet.from_string(text)
+    return DiffMapper.from_patchset(patchset)
+
+  @staticmethod
+  def from_patchset(patchset):
+    """Reads diff from the filename provided.
+
+    This fills self._mapping with a mapping for each file the represents that
+    map from target filename and line number to source filename and line number.
+    """
     mapping = defaultdict(list)
-    for patched_file in patch:
+    for patched_file in patchset:
       source_path = patched_file.source_file
       target_path = patched_file.target_file
       source_current = 0
