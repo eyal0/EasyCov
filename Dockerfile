@@ -11,16 +11,16 @@ RUN git config --system core.pager "diff-so-fancy | less --tabs=4 -RFX"
 RUN git config --system diff-so-fancy.rulerWidth 50
 RUN git config --system diff-so-fancy.first-run false
 RUN git config --system color.ui true
-RUN git config --system color.diff-highlight.oldNormal    "red bold"
-RUN git config --system color.diff-highlight.oldHighlight "red bold 52"
-RUN git config --system color.diff-highlight.newNormal    "green bold"
-RUN git config --system color.diff-highlight.newHighlight "green bold 22"
+RUN git config --system color.diff-highlight.oldNormal    "red bold noul"
+RUN git config --system color.diff-highlight.oldHighlight "red bold ul"
+RUN git config --system color.diff-highlight.newNormal    "green bold noul"
+RUN git config --system color.diff-highlight.newHighlight "green bold ul"
 RUN git config --system color.diff.meta       "yellow"
 RUN git config --system color.diff.frag       "magenta bold"
 RUN git config --system color.diff.commit     "yellow bold"
 RUN git config --system color.diff.old        "red bold"
 RUN git config --system color.diff.new        "green bold"
-RUN git config --system color.diff.whitespace "red reverse"
+RUN git config --system color.diff.whitespace "black red"
 
 COPY . /root/EasyCov/
 RUN pip install /root/EasyCov
