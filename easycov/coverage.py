@@ -9,7 +9,7 @@ import re
 from collections import defaultdict, namedtuple
 import json
 import math
-from copy import copy
+from copy import deepcopy
 import lcovparse
 import pkg_resources
 
@@ -273,11 +273,11 @@ class Coverage(object):
     # pylint: disable=protected-access
     for filename, file_coverage in other._coverage.iteritems():
       if filename not in self._coverage:
-        self._coverage[filename] = copy(file_coverage)
+        self._coverage[filename] = deepcopy(file_coverage)
         continue
       for line, hit in file_coverage.iteritems():
         if line not in self._coverage[filename]:
-          self._coverage[filename][line] = copy(hit)
+          self._coverage[filename][line] = deepcopy(hit)
           continue
         self._coverage[filename][line] = max(
             self._coverage[filename][line],
