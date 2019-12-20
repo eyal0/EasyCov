@@ -87,9 +87,12 @@ class DiffMapper(object):
 
   def __getitem__(self, filename):
     def _get(mapping, line_number):
+      if not mapping:
+        return (None, None)
       index = bisect.bisect_right([x[0] for x in mapping], line_number) - 1
       index = max(index, 0)
       entry = self._mapping[filename][index]
+      # entry is (line number in filename, old filename, old linenumber)
       if entry[2] is None:
         return (entry[1], None)
       offset = line_number - entry[0]
