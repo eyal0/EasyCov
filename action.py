@@ -8,6 +8,8 @@ import re
 import shlex
 from inspect import getframeinfo, stack
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
+from HTMLParser import HTMLParser
+import urlparse
 import colorama
 from easycov.coverage import Coverage
 
@@ -135,6 +137,47 @@ def highlight_coverage_line(fancy_line):
           colorama.Style.RESET_ALL + match_object.group('style') + # back to original
           match_object.group('end')) # all the rest.
 
+class ChecksHTMLParser(HTMLParser, object):
+  """Finds coverage.bin.gz artifact in the checks HTML page."""
+
+  def __init__(self):
+    self._maybe_href = None
+    self._href = None
+    super(ChecksHTMLParser, self).__init__()
+
+  def handle_starttag(self, tag, attrs):
+    if tag == 'a':
+      for attr in attrs:
+        if attr[0] == 'href' and 'artifacts' in attr[1]:
+          print(attr)
+          self._maybe_href = attr[1]
+
+  def handle_endtag(self, tag):
+    self._maybe_href = None
+
+  def handle_data(self, data):
+    if self._maybe_href and data == 'coverage.bin.gz':
+      self._href = self._maybe_href
+
+  def href(self):
+    """Get the href of the coverage.bin.gz file."""
+    return self._href
+
+def get_coverage_artifact(base_sha):
+  """Search the artifacts of previous CI runs to find coverage.bin.gz.
+
+  This returns the Coverage that was found.
+  """
+  checks_url = 'https://github.com/%s/commit/%s/checks' % (os.getenv('GITHUB_REPOSITORY'), base_sha)
+  checks_html = execute("wget -H -O - '%s'" % (checks_url))
+  parser = ChecksHTMLParser()
+  parser.feed(checks_html)
+  coverage_bin_gz_url = urlparse.urljoin(checks_url, parser.href())
+  execute("wget -H -O /tmp/base_coverage.bin.gz.zip '%s'" % (coverage_bin_gz_url))
+  execute("unzip -d /tmp/base_coverage /tmp/base_coverage.bin.gz.zip")
+  execute("gunzip /tmp/base_coverage/coverage.bin.gz/coverage.bin.gz")
+  return Coverage.from_binary_filename("/tmp/base_coverage/coverage.bin.gz/coverage.bin")
+
 def do_pull_request(github_token, github_event):
   """Process pull request events."""
   maybe_print("[command]Detected Pull Request Event.", 1)
@@ -154,9 +197,8 @@ def do_pull_request(github_token, github_event):
   # base_sha is the commit that we want to merge onto.
   base_sha = execute(git_cmd + ('rev-parse %s^' % (merge_sha))).strip()
 
+  base_coverage = get_coverage_artifact(base_sha)
   execute(git_cmd + 'checkout %s' % (base_sha))
-  execute("cp -f %s /tmp/coverage.bin.gz" % (os.path.join(pr_dir, 'coverage.bin.gz')))
-  execute("gunzip /tmp/coverage.bin.gz")
 
   root_dir = os.getenv('INPUT_ROOT-DIR')
   if root_dir:
@@ -164,7 +206,7 @@ def do_pull_request(github_token, github_event):
     root_dir = os.path.abspath(root_dir)
 
   # Make an annotated version of the base.
-  Coverage.from_binary_filename("/tmp/coverage.bin").annotate(root_dir)
+  base_coverage.annotate(root_dir)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_base_sha = execute(git_cmd + "rev-parse HEAD").strip()
 

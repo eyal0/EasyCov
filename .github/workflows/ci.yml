@@ -51,6 +51,8 @@ jobs:
       run: |
         cat $GITHUB_EVENT_PATH
         echo ${{ github.event_name }}
+        env
+        wget --version
     - name: Lint
       run: |
         pip install --user wheel
