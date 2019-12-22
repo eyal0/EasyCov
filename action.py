@@ -122,17 +122,30 @@ def highlight_coverage_line(fancy_line):
   used after the ratio is printed.  The ratio is printed in red background for 0
   and green background for 1.  The rest have yellow backgrounds.
   """
-  match_object = re.match(
-      r"^(?P<style>(\x1B\[[0-9;]*m)*)(?P<numer>\d+)/(?P<denom>\d+)(?P<end> .*)$", fancy_line)
+  ansi_code = r"(?:\x1B\[[0-9;]*m)"
+  regex = r"""(?x)                                  # Verbose
+            ^(?P<style>{ansi_code}*)              # The leading style
+             (?P<numer>\d(?:{ansi_code}|\d)*)     # Numerator
+             /                                    # Fraction slash
+             (?P<denom>\d(?:{ansi_code}|\d)*)     # Denominator
+             (?P<end> .*)$                        # Rest of string
+           """.format(
+               ansi_code=ansi_code
+           )
+  match_object = re.match(regex, fancy_line)
   if not match_object:
     return fancy_line
-  if int(match_object.group('numer')) == int(match_object.group('denom')):
+  # The numerator and denominator might have ansi codes in them.
+  numer_int = int(re.sub(ansi_code, "", match_object.group('numer')))
+  denom_int = int(re.sub(ansi_code, "", match_object.group('denom')))
+  if numer_int == denom_int:
     background = colorama.Back.GREEN
-  elif int(match_object.group('numer')) == 0:
+  elif numer_int == 0:
     background = colorama.Back.RED
   else:
     background = colorama.Back.YELLOW
-  return (colorama.Fore.BLACK + background + colorama.Style.BRIGHT + # Colorize
+  return (match_object.group('style') +
+          colorama.Fore.BLACK + background + colorama.Style.BRIGHT + # Colorize
           match_object.group('numer') + "/" + match_object.group('denom') + # coverage ratio
           colorama.Style.RESET_ALL + match_object.group('style') + # back to original
           match_object.group('end')) # all the rest.
