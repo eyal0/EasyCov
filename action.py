@@ -171,6 +171,7 @@ def get_coverage_artifact(base_sha):
   parser.feed(checks_html)
   coverage_bin_gz_url = urlparse.urljoin(checks_url, parser.href())
   execute("wget -H -O /tmp/base_coverage.bin.gz.zip '%s'" % (coverage_bin_gz_url))
+  execute("mkdir -p /tmp/base_coverage")
   execute("unzip -d /tmp/base_coverage /tmp/base_coverage.bin.gz.zip")
   execute("gunzip /tmp/base_coverage/coverage.bin.gz/coverage.bin.gz")
   return Coverage.from_binary_filename("/tmp/base_coverage/coverage.bin.gz/coverage.bin")
