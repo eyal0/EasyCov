@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shlex
+import sys
 from collections import defaultdict
 from inspect import getframeinfo, stack
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
@@ -97,6 +98,7 @@ def do_push(github_token, github_event):
     coverage_file.write(collect_coverage().to_binary())
   execute("gzip -n %s" % (coverage_bin))
   execute("cp -f /tmp/coverage.bin.gz " + os.getenv('GITHUB_WORKSPACE'))
+  return 0
 
 def color_diff(path, base_sha, change_sha):
   """git giff the base_sha to change_sha in the path, colorizing the output."""
@@ -111,7 +113,7 @@ def color_diff(path, base_sha, change_sha):
   if diff_so_fancy.returncode:
     caller = getframeinfo(stack()[1][0])
     filename = caller.filename.replace("/root/EasyCov", "")
-    maybe_print("::error file=%s,line=%d::%s" % (filename, caller.lineno, stderr), 1)
+    print("::error file=%s,line=%d::%s" % (filename, caller.lineno, stderr))
     raise CalledProcessError(diff_so_fancy.returncode, "diff-so-fancy", output)
   return output
 
@@ -144,9 +146,12 @@ def highlight_coverage_line(fancy_line):
     background = colorama.Back.RED
   else:
     background = colorama.Back.YELLOW
-  return (match_object.group('style') +
-          colorama.Fore.BLACK + background + colorama.Style.BRIGHT + # Colorize
-          match_object.group('numer') + "/" + match_object.group('denom') + # coverage ratio
+  return (match_object.group('style') + # Original style.
+          colorama.Fore.BLACK + background + colorama.Style.BRIGHT + # Highlight coverage.
+          match_object.group('numer') + # Numerator, which might have ansi codes in it.
+          colorama.Style.RESET_ALL + match_object.group('style') + # back to original
+          colorama.Fore.BLACK + background + colorama.Style.BRIGHT + # Highlight coverage.
+          "/" + match_object.group('denom') + # coverage ratio
           colorama.Style.RESET_ALL + match_object.group('style') + # back to original
           match_object.group('end')) # all the rest.
 
@@ -207,6 +212,38 @@ def get_coverage_artifact(base_sha):
   execute("gunzip /tmp/base_coverage/coverage.bin.gz/coverage.bin.gz")
   return Coverage.from_binary_filename("/tmp/base_coverage/coverage.bin.gz/coverage.bin")
 
+def check_coverage(diff_stats):
+  """Sums the coverage in the diff_stats.
+
+  Returns true if coverage is maintained or improved.  Returns false if coverage
+  is worse.
+  """
+  newly_covered = 0
+  newly_uncovered = 0
+  coverage_increased = 0
+  coverage_decreased = 0
+  for target_hit, source_hits in diff_stats.iteritems():
+    for source_hit, count in source_hits.iteritems():
+      if target_hit is None:
+        # Ignore lines that are removed.
+        continue
+      elif source_hit is None:
+        # New lines.
+        if float(target_hit) == 1:
+          newly_covered += count
+        else:
+          newly_uncovered += count
+      else:
+        if float(target_hit) > float(source_hit):
+          coverage_increased += count
+        elif float(target_hit) < float(source_hit):
+          coverage_decreased += count
+  maybe_print("Lines with coverage increased: %d" % coverage_increased, 1)
+  maybe_print("Lines with coverage decreased: %d" % coverage_decreased, 1)
+  maybe_print("New lines with coverage: %d" % newly_covered, 1)
+  maybe_print("New lines without coverage: %d" % newly_uncovered, 1)
+
+
 def do_pull_request(github_token, github_event):
   """Process pull request events."""
   maybe_print("[command]Detected Pull Request Event.", 1)
@@ -251,19 +288,12 @@ def do_pull_request(github_token, github_event):
                 color_diff(
                     pr_dir, annotated_base_sha, annotated_merge_sha).split("\n")),
       1)
-  maybe_print(get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage), 1)
-  #coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
-  #if coverage_mismatch:
-  #  maybe_print("[command]Coverage is changed.", 1)
-  #  git_cmd = "git -C %s" % (push_dir)
-  #  execute("cp -f %s.gz %s" % (coverage_bin, os.path.join(push_dir, "coverage.bin.gz")))
-  #  upstream_branch = github_event['ref'].replace('refs/heads/', '')
-  #  execute(git_cmd + ' checkout -b %s' % (upstream_branch))
-  #  execute(git_cmd + " add /tmp/push/coverage.bin.gz")
-  #  execute(git_cmd + ' commit -m "Automated update of coverage.bin.gz"')
-  #  execute(git_cmd + ' push origin HEAD:%s' % (upstream_branch))
-  #else:
-  #  maybe_print("[command]Coverage is unchanged.", 1)
+  diff_stats = get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage)
+  maybe_print(diff_stats, 2)
+  if not check_coverage(diff_stats):
+    print("::error::Coverage is decreased")
+    return 1
+  return 0
 
 def main():
   """Run the action."""
@@ -274,9 +304,10 @@ def main():
     with open(github_event_path, 'r') as event_file:
       github_event = json.loads(event_file.read())
     if github_event_name == 'push':
-      do_push(github_token, github_event)
+      return do_push(github_token, github_event)
     if github_event_name == 'pull_request':
-      do_pull_request(github_token, github_event)
+      return do_pull_request(github_token, github_event)
+    return 0
   except Exception as exc:# pylint: disable=broad-except
     caller = getframeinfo(stack()[1][0])
     filename = caller.filename.replace("/root/EasyCov", "")
@@ -284,4 +315,4 @@ def main():
     raise
 
 if __name__ == '__main__':
-  main()
+  sys.exit(main())
