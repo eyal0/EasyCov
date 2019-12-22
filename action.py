@@ -6,12 +6,15 @@ import json
 import os
 import re
 import shlex
+from collections import defaultdict
 from inspect import getframeinfo, stack
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
 from HTMLParser import HTMLParser
 import urlparse
+
 import colorama
 from easycov.coverage import Coverage
+from easycov.diff_mapper import DiffMapper
 
 def maybe_print(text, level):
   """Print a string only if the verbosity is high enough."""
@@ -134,6 +137,21 @@ def highlight_coverage_line(fancy_line):
           colorama.Style.RESET_ALL + match_object.group('style') + # back to original
           match_object.group('end')) # all the rest.
 
+def get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage):
+  """Get stats on change in coverage."""
+  stats = defaultdict(lambda: defaultdict(int))
+  diff_map = DiffMapper.from_string(execute("git -C %s diff --color=never --no-prefix %s %s" %
+                                            (pr_dir, base_sha, merge_sha)))
+  for filename, file_coverage in merge_coverage.get_coverage().iteritems():
+    for line_number, hits in file_coverage.iteritems():
+      base_filename, base_line_number = diff_map[filename][line_number]
+      if base_filename is None or base_line_number is None:
+        old_hits = None
+      else:
+        old_hits = base_coverage.get_coverage(base_filename, base_line_number)
+      stats[hits][old_hits] += 1
+  return stats
+
 class ChecksHTMLParser(HTMLParser, object):
   """Finds coverage.bin.gz artifact in the checks HTML page."""
 
@@ -210,7 +228,8 @@ def do_pull_request(github_token, github_event):
 
   # Make an annotated version of the merge.
   execute(git_cmd + 'checkout %s' % (merge_sha))
-  collect_coverage().annotate(root_dir)
+  merge_coverage = collect_coverage()
+  merge_coverage.annotate(root_dir)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
   maybe_print(
@@ -219,6 +238,7 @@ def do_pull_request(github_token, github_event):
                 color_diff(
                     pr_dir, annotated_base_sha, annotated_merge_sha).split("\n")),
       1)
+  maybe_print(get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage), 1)
   #coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
   #if coverage_mismatch:
   #  maybe_print("[command]Coverage is changed.", 1)
