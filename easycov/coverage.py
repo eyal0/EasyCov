@@ -43,6 +43,10 @@ class Hits(namedtuple("Hits", ["hits", "total"])):
     return cmp(float(self), float(other))
   def __ne__(self, other):
     return not self == other
+  @staticmethod
+  def from_iter(iterable):
+    """Take the first two values from the iterable to make a Hits."""
+    return Hits(*[iterable[x] for x in xrange(2)])
 
 class Coverage(object):
   """Coverage represents a coverage report of many files."""
@@ -134,7 +138,7 @@ class Coverage(object):
     for filename in coverage:
       # Don't use iterkeys because we are modifying the dictionary.
       for line_number in coverage[filename].keys():
-        coverage[filename][int(line_number)] = coverage[filename].pop(line_number)
+        coverage[filename][int(line_number)] = Hits.from_iter(coverage[filename].pop(line_number))
     return Coverage(coverage, version)
 
   @staticmethod
@@ -331,5 +335,5 @@ class Coverage(object):
     for _, file_coverage in self._coverage.iteritems():
       for _, hit in file_coverage.iteritems():
         expected += 1
-        actual += hit
-    return 1 if expected == 0 else actual/expected
+        actual += float(hit)
+    return 1 if expected == 0 else actual / expected
