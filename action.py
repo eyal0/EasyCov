@@ -32,9 +32,6 @@ def execute(cmd, check=True):
   except CalledProcessError as exc:
     maybe_print(exc.output, 3)
     if check:
-      caller = getframeinfo(stack()[1][0])
-      filename = caller.filename.replace("/root/EasyCov", "")
-      maybe_print("::error file=%s,line=%d::%s" % (filename, caller.lineno, str(exc)), 1)
       raise
     else:
       return exc.returncode
@@ -236,15 +233,21 @@ def do_pull_request(github_token, github_event):
 
 def main():
   """Run the action."""
-  github_event_path = os.getenv('GITHUB_EVENT_PATH')
-  github_event_name = os.getenv('GITHUB_EVENT_NAME')
-  github_token = os.getenv('INPUT_GITHUB-TOKEN')
-  with open(github_event_path, 'r') as event_file:
-    github_event = json.loads(event_file.read())
-  if github_event_name == 'push':
-    do_push(github_token, github_event)
-  if github_event_name == 'pull_request':
-    do_pull_request(github_token, github_event)
+  try:
+    github_event_path = os.getenv('GITHUB_EVENT_PATH')
+    github_event_name = os.getenv('GITHUB_EVENT_NAME')
+    github_token = os.getenv('INPUT_GITHUB-TOKEN')
+    with open(github_event_path, 'r') as event_file:
+      github_event = json.loads(event_file.read())
+    if github_event_name == 'push':
+      do_push(github_token, github_event)
+    if github_event_name == 'pull_request':
+      do_pull_request(github_token, github_event)
+  except Exception as exc:# pylint: disable=broad-except
+    caller = getframeinfo(stack()[1][0])
+    filename = caller.filename.replace("/root/EasyCov", "")
+    maybe_print("::error file=%s,line=%d::%s" % (filename, caller.lineno, str(exc)), 1)
+    raise
 
 if __name__ == '__main__':
   main()
