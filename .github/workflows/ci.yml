@@ -16,6 +16,7 @@ jobs:
         cat $GITHUB_EVENT_PATH
         echo ${{ github.event_name }}
     - name: Checkout source code
+      if: github.event_name == 'push'
       uses: actions/checkout@v2-beta
     - name: Publish Docker Image
       if: github.event_name == 'push'
@@ -69,3 +70,9 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         xml-coverage: coverage.xml
         verbosity: 5
+    - name: Upload coverage.bin.gz
+      uses: actions/upload-artifact@v1
+      if: github.event_name == 'push'
+      with:
+        name: coverage.bin.gz
+        path: coverage.bin.gz

@@ -94,18 +94,7 @@ def do_push(github_token, github_event):
   with open(coverage_bin, 'wb') as coverage_file:
     coverage_file.write(collect_coverage().to_binary())
   execute("gzip -n %s" % (coverage_bin))
-  coverage_mismatch = execute("diff -q /tmp/coverage.bin.gz coverage.bin.gz", check=False)
-  if coverage_mismatch:
-    maybe_print("[command]Coverage is changed.", 1)
-    git_cmd = "git -C %s " % (push_dir)
-    upstream_branch = github_event['ref'].replace('refs/heads/', '')
-    execute(git_cmd + 'checkout %s' % (push_sha))
-    execute("cp -f %s.gz %s" % (coverage_bin, os.path.join(push_dir, "coverage.bin.gz")))
-    execute(git_cmd + "add " + os.path.join(push_dir, "coverage.bin.gz"))
-    execute(git_cmd + 'commit -m "Automated update of coverage.bin.gz"')
-    execute(git_cmd + 'push origin HEAD:%s' % (upstream_branch))
-  else:
-    maybe_print("[command]Coverage is unchanged.", 1)
+  execute("cp -f /tmp/coverage.bin.gz " + os.getenv('GITHUB_WORKSPACE'))
 
 def color_diff(path, base_sha, change_sha):
   """git giff the base_sha to change_sha in the path, colorizing the output."""
