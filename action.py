@@ -242,7 +242,7 @@ def check_coverage(diff_stats):
   maybe_print("Lines with coverage decreased: %d" % coverage_decreased, 1)
   maybe_print("New lines with coverage: %d" % newly_covered, 1)
   maybe_print("New lines without coverage: %d" % newly_uncovered, 1)
-
+  return coverage_decreased == 0 and newly_uncovered == 0
 
 def do_pull_request(github_token, github_event):
   """Process pull request events."""
