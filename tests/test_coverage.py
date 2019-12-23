@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 """Test coverage.py"""
 
+from __future__ import division
 import difflib
 import os
 import unittest
@@ -143,6 +144,13 @@ class CoverageTests(unittest.TestCase):
         expected = Hits(numer, denom)
         actual = Coverage._bits_to_value(Coverage._value_to_bits(expected)) # pylint: disable=protected-access
         self.assertEqual(actual, expected)
+
+  def test_get_ratio(self):
+    """Test Coverage.get_ratio()."""
+    path = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(path, "coverage.xml.json"), 'r') as json_file:
+      data = json_file.read()
+      self.assertEqual(Coverage.from_json(data).get_ratio(), 73/86)
 
 if __name__ == '__main__':
   unittest.main()
