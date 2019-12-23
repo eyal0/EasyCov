@@ -74,7 +74,6 @@ jobs:
         verbosity: 5
     - name: Upload coverage.bin.gz
       uses: actions/upload-artifact@v1
-      if: github.event_name == 'push'
       with:
         name: coverage.bin.gz
         path: coverage.bin.gz

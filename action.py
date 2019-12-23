@@ -85,19 +85,18 @@ def collect_coverage():
       total_coverage += Coverage.from_lcov(lcov_filename, root_dir)
   return total_coverage
 
-def do_push(github_token, github_event):
-  """Process push events."""
-  maybe_print("[command]Detected Push Event.", 1)
-  push_dir = "/tmp/push"
-  clone_url = github_event['repository']['clone_url']
-  git_clone(clone_url, github_token, push_dir)
-  push_sha = github_event['after']
-  git_fetch(push_sha, push_dir)
+def write_coverage_bin_gz(coverage):
+  """Write covearge coverage.bin.gz to github workspace"""
   coverage_bin = "/tmp/coverage.bin"
   with open(coverage_bin, 'wb') as coverage_file:
-    coverage_file.write(collect_coverage().to_binary())
+    coverage_file.write(coverage.to_binary())
   execute("gzip -n %s" % (coverage_bin))
   execute("cp -f /tmp/coverage.bin.gz " + os.getenv('GITHUB_WORKSPACE'))
+
+def do_push():
+  """Process push events."""
+  maybe_print("[command]Detected Push Event.", 1)
+  write_coverage_bin_gz(collect_coverage())
   return True
 
 def color_diff(path, base_sha, change_sha):
@@ -250,6 +249,8 @@ def do_pull_request(github_token, github_event):
 
   Returns True if it all works and coverage didn't go down."""
   maybe_print("[command]Detected Pull Request Event.", 1)
+  merge_coverage = collect_coverage()
+  write_coverage_bin_gz(merge_coverage)
   pr_dir = "/tmp/pr"
   clone_url = github_event['pull_request']['base']['repo']['clone_url']
   # merge_sha is the one that would be potentially merged.
@@ -285,7 +286,6 @@ def do_pull_request(github_token, github_event):
 
   # Make an annotated version of the merge.
   execute(git_cmd + 'checkout %s' % (merge_sha))
-  merge_coverage = collect_coverage()
   merge_coverage.annotate(root_dir)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
@@ -315,7 +315,7 @@ def main():
     with open(github_event_path, 'r') as event_file:
       github_event = json.loads(event_file.read())
     if github_event_name == 'push':
-      return do_push(github_token, github_event)
+      return do_push()
     if github_event_name == 'pull_request':
       return do_pull_request(github_token, github_event)
     return 0
