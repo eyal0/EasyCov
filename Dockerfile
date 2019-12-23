@@ -31,6 +31,5 @@ COPY . /root/EasyCov/
 RUN pip install /root/EasyCov
 RUN hash -r
 
-# Code file to execute when the docker container starts up (`entrypoint.sh`)
-# TODO: This speeds up debugging.  Change the entrypoint back to /root/EasyCov/action.py
-ENTRYPOINT ["python", "/github/workspace/action.py"]
+# Code file to execute when the docker container starts up.
+ENTRYPOINT ["python", "/root/EasyCov/action.py"]
