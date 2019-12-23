@@ -32,3 +32,8 @@ inputs:
       to this directory.  Default is current directory.
     required: false
     default: "."
+outputs:
+  success:
+    description: >-
+      "true" if everything succeeds and coverage is not decreased.
+      Otherwise, "false".
