@@ -72,6 +72,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         xml-coverage: coverage.xml
         verbosity: 5
+        entrypoint: /github/workspace/action.py
     - name: Upload coverage.bin.gz
       uses: actions/upload-artifact@v1
       with:
