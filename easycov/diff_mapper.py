@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 import bisect
 from collections import defaultdict
+from copy import deepcopy
 from unidiff import PatchSet
 
 class DiffMapper(object):
@@ -89,6 +90,10 @@ class DiffMapper(object):
                  source_current)
       DiffMapper._add_row_to_mapping(mapping[target_path], new_row)
     return DiffMapper(mapping)
+
+  def get_mapping(self):
+    """Returns a copy of the internal mapping."""
+    return deepcopy(self._mapping)
 
   def __getitem__(self, filename):
     def _get(mapping, line_number):

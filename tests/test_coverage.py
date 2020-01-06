@@ -2,30 +2,15 @@
 """Test coverage.py"""
 
 from __future__ import division
-import difflib
 import os
 import unittest
 
 from tests.context import easycov # pylint: disable=unused-import
 from easycov.coverage import Coverage, Hits
+from .test_helpers import BaseTestCase
 
-class CoverageTests(unittest.TestCase):
+class CoverageTests(BaseTestCase):
   """Test Coverage class."""
-  def compare_lines(self, actual_lines, expected_lines, filename):
-    """Helper for comparing lines.
-
-    Outputs a unified diff.
-    """
-    self.assertEqual(actual_lines,
-                     expected_lines,
-                     "\n\n" + "\n".join(
-                         difflib.unified_diff(
-                             expected_lines,
-                             actual_lines,
-                             os.path.relpath(filename),
-                             os.path.relpath(filename),
-                             lineterm="")))
-
   def test_from_lcov(self):
     """Test Coverage.from_lcov(file)."""
     path = os.path.dirname(os.path.realpath(__file__))
