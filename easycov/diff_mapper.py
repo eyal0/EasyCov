@@ -69,7 +69,7 @@ class DiffMapper(object):
         if source_start - source_current != target_start - target_current:
           # This can happen if one of the sides is /dev/null because it's a new
           # or deleted file.
-          if source_start != 0 and target_start != 0:
+          if source_current != 0 and target_current != 0:
             raise ValueError("Patch is missing a hunk, source %s:%d:%d, target %s:%d:%d." %
                              (source_path, source_start, source_current,
                               target_path, target_start, target_current))
