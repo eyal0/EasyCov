@@ -39,8 +39,6 @@ class Hits(namedtuple("Hits", ["hits", "total"])):
     return float(self) - float(other)
   def __eq__(self, other):
     return isinstance(other, Hits) and self.hits == other.hits and self.total == other.total
-  def __cmp__(self, other):
-    return cmp(float(self), float(other))
   def __ne__(self, other):
     return not self == other
   @staticmethod
@@ -75,12 +73,31 @@ class Coverage(object):
     json_cov = lcovparse.lcovparse(current_file.read())
     coverage = defaultdict(lambda: defaultdict(Hits))
     for file_coverage in json_cov:
+      filename = relative_filename(file_coverage['file'], root_dir)
       for line in file_coverage['lines']:
-        filename = relative_filename(file_coverage['file'], root_dir)
-        current_hits = coverage[filename][int(line['line'])]
-        coverage[filename][int(line['line'])] = max(
-            current_hits,
-            min(int(line['hit']), 0))
+        line_number = int(line['line'])
+        coverage[filename][line_number] = max(
+            coverage[filename][line_number],
+            Hits(1 if int(line['hit']) else 0, 1))
+      # Now we go through the branches, which can override the line coverage.
+      # For now, we'll write them each as an array.  That's how we'll recognize
+      # what has already been recorded as branch coverage.  At the end, we'll
+      # convert all arrays to Hits.
+      for branch in file_coverage['branches']:
+        taken = branch['taken']
+        line_number = branch['line']
+        branch_number = branch['branch']
+        if (line_number not in coverage[filename] or
+            not isinstance(coverage[filename][line_number], dict)):
+          # Previously had line coverage or nothing.  Create a dict.
+          coverage[filename][line_number] = {}
+        coverage[filename][line_number][branch_number] = taken
+    # Now clean up all the branch coverage from dicts to Hits.
+    for _, file_coverage in coverage.iteritems():
+      for line_number, line_coverage in file_coverage.iteritems():
+        if isinstance(line_coverage, dict):
+          file_coverage[line_number] = Hits(sum(bool(x) for x in line_coverage.values()),
+                                            len(line_coverage))
     return Coverage(coverage)
 
   @staticmethod

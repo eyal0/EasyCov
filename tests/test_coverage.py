@@ -33,6 +33,18 @@ class CoverageTests(BaseTestCase):
       actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
+  def test_from_lcov_with_branch_coverage(self):
+    """Test Coverage.from_lcov(file, root_dir)."""
+    path = os.path.dirname(os.path.realpath(__file__))
+    result = Coverage.from_lcov(
+        os.path.join(path, "branch-lcov.info"),
+        "/home/runner/work/pcb2gcode/pcb2gcode")
+    expected_file = os.path.join(path, "branch-lcov.info.json")
+    with open(expected_file) as expected:
+      expected_lines = expected.read().splitlines() # No newlines
+      actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
+      self.compare_lines(actual_lines, expected_lines, expected_file)
+
   def test_from_xml(self):
     """Test Coverage.from_xml(file, root_dir)."""
     path = os.path.dirname(os.path.realpath(__file__))
