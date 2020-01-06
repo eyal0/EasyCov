@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 import bisect
 from collections import defaultdict
+from copy import deepcopy
 from unidiff import PatchSet
 
 class DiffMapper(object):
@@ -66,9 +67,12 @@ class DiffMapper(object):
         source_start = hunk.source_start
         target_start = hunk.target_start
         if source_start - source_current != target_start - target_current:
-          raise ValueError("Malformed patch is missing a hunk, source %s:%d:%d, target %s:%d:%d." %
-                           (source_path, source_start, source_current,
-                            target_path, target_start, target_current))
+          # This can happen if one of the sides is /dev/null because it's a new
+          # or deleted file.
+          if source_start != 0 and target_start != 0:
+            raise ValueError("Patch is missing a hunk, source %s:%d:%d, target %s:%d:%d." %
+                             (source_path, source_start, source_current,
+                              target_path, target_start, target_current))
         new_row = (target_current,
                    source_path,
                    source_current)
@@ -86,6 +90,10 @@ class DiffMapper(object):
                  source_current)
       DiffMapper._add_row_to_mapping(mapping[target_path], new_row)
     return DiffMapper(mapping)
+
+  def get_mapping(self):
+    """Returns a copy of the internal mapping."""
+    return deepcopy(self._mapping)
 
   def __getitem__(self, filename):
     def _get(mapping, line_number):

@@ -1,0 +1,86 @@
+commit a2da9cac55ba771ebc7c84f7f872feb3da9e2fce
+Author: eyal0 <109809+eyal0@users.noreply.github.com>
+Date:   Sun Dec 22 22:32:21 2019 -0500
+
+    Add success output
+
+diff --git action.py action.py
+index fc46491..22aab11 100755
+--- action.py
++++ action.py
+@@ -98,7 +98,7 @@ def do_push(github_token, github_event):
+     coverage_file.write(collect_coverage().to_binary())
+   execute("gzip -n %s" % (coverage_bin))
+   execute("cp -f /tmp/coverage.bin.gz " + os.getenv('GITHUB_WORKSPACE'))
+-  return 0
++  return True
+ 
+ def color_diff(path, base_sha, change_sha):
+   """git giff the base_sha to change_sha in the path, colorizing the output."""
+@@ -182,7 +182,6 @@ class ChecksHTMLParser(HTMLParser, object):
+     if tag == 'a':
+       for attr in attrs:
+         if attr[0] == 'href' and 'artifacts' in attr[1]:
+-          print(attr)
+           self._maybe_href = attr[1]
+ 
+   def handle_endtag(self, tag):
+@@ -205,6 +204,8 @@ def get_coverage_artifact(base_sha):
+   checks_html = execute("wget -H -O - '%s'" % (checks_url))
+   parser = ChecksHTMLParser()
+   parser.feed(checks_html)
++  if not parser.href():
++    return None
+   coverage_bin_gz_url = urlparse.urljoin(checks_url, parser.href())
+   execute("wget -H -O /tmp/base_coverage.bin.gz.zip '%s'" % (coverage_bin_gz_url))
+   execute("mkdir -p /tmp/base_coverage")
+@@ -264,6 +267,10 @@ def do_pull_request(github_token, github_event):
+   base_sha = execute(git_cmd + ('rev-parse %s^' % (merge_sha))).strip()
+ 
+   base_coverage = get_coverage_artifact(base_sha)
++  if not base_coverage:
++    # Can't find the base coverage, maybe it expired or there was no push request?
++    print("::error::Can't find the coverage for base sha %s" % (base_sha))
++    return False
+   execute(git_cmd + 'checkout %s' % (base_sha))
+ 
+   root_dir = os.getenv('INPUT_ROOT-DIR')
+@@ -292,11 +299,15 @@ def do_pull_request(github_token, github_event):
+   maybe_print(diff_stats, 2)
+   if not check_coverage(diff_stats):
+     print("::error::Coverage is decreased")
+-    return 1
+-  return 0
++    return False
++  return True
+ 
+ def main():
+-  """Run the action."""
++  """Run the action.  Return success value.
++
++  Success means that nothing was done, or it was a push and everything worked,
++  or it was a PR and everything worked and coverage did not decrease.
++  """
+   try:
+     github_event_path = os.getenv('GITHUB_EVENT_PATH')
+     github_event_name = os.getenv('GITHUB_EVENT_NAME')
+@@ -315,4 +326,5 @@ def main():
+     raise
+ 
+ if __name__ == '__main__':
+-  sys.exit(main())
++  print("::set-output name=success::%s" % ("true" if main() else "false"))
++  sys.exit(0)
+diff --git action.yml action.yml
+index 31aa792..bc525b8 100644
+--- action.yml
++++ action.yml
+@@ -32,3 +32,8 @@ inputs:
+       to this directory.  Default is current directory.
+     required: false
+     default: "."
++outputs:
++  success:
++    description: >-
++      "true" if everything succeeds and coverage is not decreased.
++      Otherwise, "false".
