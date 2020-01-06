@@ -2,31 +2,16 @@
 """Test diff_mapper.py"""
 
 from __future__ import division
-import difflib
 import os
 import unittest
 import json
 
 from tests.context import easycov # pylint: disable=unused-import
 from easycov.diff_mapper import DiffMapper
+from .test_helpers import BaseTestCase
 
-class DiffMapperTests(unittest.TestCase):
+class DiffMapperTests(BaseTestCase):
   """Test DiffMapper class."""
-  def compare_lines(self, actual_lines, expected_lines, filename):
-    """Helper for comparing lines.
-
-    Outputs a unified diff.
-    """
-    self.assertEqual(actual_lines,
-                     expected_lines,
-                     "\n\n" + "\n".join(
-                         difflib.unified_diff(
-                             expected_lines,
-                             actual_lines,
-                             os.path.relpath(filename),
-                             os.path.relpath(filename),
-                             lineterm="")))
-
   def test_simple(self):
     """Test DiffMapper with a simple input diff."""
     path = os.path.dirname(os.path.realpath(__file__))
