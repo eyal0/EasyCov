@@ -66,7 +66,9 @@ class DiffMapper(object):
         source_start = hunk.source_start
         target_start = hunk.target_start
         if source_start - source_current != target_start - target_current:
-          raise ValueError("Malformed patch is missing a hunk.")
+          raise ValueError("Malformed patch is missing a hunk, source %s:%d:%d, target %s:%d:%d." %
+                           (source_path, source_start, source_current,
+                            target_path, target_start, target_current))
         new_row = (target_current,
                    source_path,
                    source_current)
