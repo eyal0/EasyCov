@@ -39,8 +39,6 @@ class Hits(namedtuple("Hits", ["hits", "total"])):
     return float(self) - float(other)
   def __eq__(self, other):
     return isinstance(other, Hits) and self.hits == other.hits and self.total == other.total
-  def __cmp__(self, other):
-    return cmp(float(self), float(other))
   def __ne__(self, other):
     return not self == other
   @staticmethod
