@@ -244,6 +244,14 @@ def check_coverage(diff_stats):
   maybe_print("New lines without coverage: %d" % newly_uncovered, 1)
   return coverage_decreased == 0 and newly_uncovered == 0
 
+def remove_unmodified_files(git_cmd):
+  """git rm files that are not modified."""
+  tracked_files = execute(git_cmd + "ls-tree -r HEAD --name-only").splitlines()
+  modified_files = execute(git_cmd + "ls-files -m").splitlines()
+  for tracked_file in tracked_files:
+    if tracked_file not in modified_files:
+      execute(git_cmd + "rm " + tracked_file)
+
 def do_pull_request(github_token, github_event):
   """Process pull request events.
 
@@ -281,12 +289,14 @@ def do_pull_request(github_token, github_event):
 
   # Make an annotated version of the base.
   base_coverage.annotate(root_dir)
+  remove_unmodified_files(git_cmd)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_base_sha = execute(git_cmd + "rev-parse HEAD").strip()
 
   # Make an annotated version of the merge.
   execute(git_cmd + 'checkout %s' % (merge_sha))
   merge_coverage.annotate(root_dir)
+  remove_unmodified_files(git_cmd)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
   maybe_print(
