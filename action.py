@@ -250,7 +250,7 @@ def remove_unmodified_files(git_cmd):
   modified_files = execute(git_cmd + "ls-files -m").splitlines()
   for tracked_file in tracked_files:
     if tracked_file not in modified_files:
-      execute(git_cmd + "rm " + tracked_file)
+      execute(git_cmd + "rm '" + tracked_file + "'")
 
 def do_pull_request(github_token, github_event):
   """Process pull request events.
