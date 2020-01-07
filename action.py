@@ -17,18 +17,24 @@ import colorama
 from easycov.coverage import Coverage
 from easycov.diff_mapper import DiffMapper
 
-def maybe_print(text, level):
+def maybe_print(text, level, prefix=""):
   """Print a string only if the verbosity is high enough."""
   verbosity = int(os.getenv('INPUT_VERBOSITY'))
-  if level <= verbosity:
-    print(text)
+  if level > verbosity:
+    return
+  if prefix:
+    text = "\n".join(prefix + x for x in text.splitlines())
+  print(text)
+
+def maybe_debug(text, level):
+  maybe_print(text, level, "[debug]")
 
 def execute(cmd, check=True):
   """Run cmd, printing the command as it is run.
 
   Returns the result.  If check is True, raise an exception on errors.
   """
-  maybe_print("[command]" + cmd, 2)
+  maybe_print(cmd, 2, "[command]")
   try:
     output = check_output(shlex.split(cmd), stderr=STDOUT)
     if output:
@@ -43,7 +49,7 @@ def execute(cmd, check=True):
 
 def git_clone(repo_url, github_token, target_dir):
   """Clone a repo into the target_dir."""
-  maybe_print("[command]Cloning branch.", 1)
+  maybe_print("Cloning branch.", 1, "[command]")
   clone_url = repo_url.replace('https://', 'https://x-access-token:' + github_token + "@")
   execute("git init %s" % (target_dir))
   execute("git -C %s remote add origin %s" % (target_dir, clone_url))
@@ -74,7 +80,7 @@ def collect_coverage():
     root_dir = os.path.join(os.getenv('GITHUB_WORKSPACE'), root_dir)
     root_dir = os.path.abspath(root_dir)
     root_dir = translate_docker_path(root_dir)
-  maybe_print("[command]Collecting coverage.", 1)
+  maybe_print("Collecting coverage.", 1, "[command]")
   xml_coverage = os.getenv('INPUT_XML-COVERAGE')
   if xml_coverage:
     for xml_filename in xml_coverage.split(" "):
@@ -95,7 +101,7 @@ def write_coverage_bin_gz(coverage):
 
 def do_push():
   """Process push events."""
-  maybe_print("[command]Detected Push Event.", 1)
+  maybe_print("Detected Push Event.", 1, "[command]")
   write_coverage_bin_gz(collect_coverage())
   return True
 
@@ -256,7 +262,7 @@ def do_pull_request(github_token, github_event):
   """Process pull request events.
 
   Returns True if it all works and coverage didn't go down."""
-  maybe_print("[command]Detected Pull Request Event.", 1)
+  maybe_print("Detected Pull Request Event.", 1, "[command]")
   merge_coverage = collect_coverage()
   write_coverage_bin_gz(merge_coverage)
   pr_dir = "/tmp/pr"
@@ -306,7 +312,7 @@ def do_pull_request(github_token, github_event):
                     pr_dir, annotated_base_sha, annotated_merge_sha).split("\n")),
       1)
   diff_stats = get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage)
-  maybe_print(diff_stats, 2)
+  maybe_debug(diff_stats, 2)
   if not check_coverage(diff_stats):
     print("::error::Coverage is decreased")
     return False
