@@ -27,6 +27,7 @@ def maybe_print(text, level, prefix=""):
   print(text)
 
 def maybe_debug(text, level):
+  """Like maybe_print but with the debug coloring."""
   maybe_print(text, level, "[debug]")
 
 def execute(cmd, check=True):

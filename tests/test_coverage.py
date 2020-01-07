@@ -33,7 +33,7 @@ class CoverageTests(BaseTestCase):
       actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
       self.compare_lines(actual_lines, expected_lines, expected_file)
 
-  def test_from_lcov_with_branch_coverage(self):
+  def test_from_lcov_with_branch(self):
     """Test Coverage.from_lcov(file, root_dir)."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = Coverage.from_lcov(
@@ -96,7 +96,7 @@ class CoverageTests(BaseTestCase):
       self.compare_lines(roundtrip.splitlines(), data.splitlines(),
                          os.path.join(path, "pcb2gcode-lcov.info.json"))
 
-  def test_roundtrip_lcov_with_root_json(self):
+  def test_roundtrip_lcov_root_json(self):
     """Test roundtrip with lcov and root_dir and json."""
     path = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(path, "one-lcov.info.json"), 'r') as json_file:
