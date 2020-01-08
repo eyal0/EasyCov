@@ -33,8 +33,6 @@ class Hits(namedtuple("Hits", ["hits", "total"])):
   """
   def __float__(self):
     return self.hits / self.total
-  def __sub__(self, other):
-    return float(self) - float(other)
   def __eq__(self, other):
     return isinstance(other, Hits) and self.hits == other.hits and self.total == other.total
   def __ne__(self, other):
