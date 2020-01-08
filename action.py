@@ -108,7 +108,7 @@ def do_push():
 
 def color_diff(path, base_sha, change_sha):
   """git giff the base_sha to change_sha in the path, colorizing the output."""
-  diff = execute("git -C %s diff --color=never %s %s" %
+  diff = execute("git -C %s diff --color %s %s" %
                  (path, base_sha, change_sha))
   diff_so_fancy = Popen(['diff-so-fancy'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
   output, stderr = diff_so_fancy.communicate(input=diff)
