@@ -313,7 +313,7 @@ def do_pull_request(github_token, github_event):
                     pr_dir, annotated_base_sha, annotated_merge_sha).split("\n")),
       1)
   diff_stats = get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage)
-  maybe_debug(diff_stats, 2)
+  maybe_debug(str(diff_stats), 2)
   if not check_coverage(diff_stats):
     print("::error::Coverage is decreased")
     return False
