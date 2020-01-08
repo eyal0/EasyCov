@@ -131,12 +131,12 @@ def highlight_coverage_line(fancy_line):
   and green background for 1.  The rest have yellow backgrounds.
   """
   ansi_code = r"(?:\x1B\[[0-9;]*m)"
-  regex = r"""(?x)                                  # Verbose
+  regex = r"""(?x)                                # Verbose
             ^(?P<style>{ansi_code}*)              # The leading style
              (?P<numer>\d(?:{ansi_code}|\d)*)     # Numerator
              /                                    # Fraction slash
              (?P<denom>\d(?:{ansi_code}|\d)*)     # Denominator
-             (?P<end> .*)$                        # Rest of string
+             (?P<end>\ .*)$                       # Rest of string
            """.format(
                ansi_code=ansi_code
            )
