@@ -6,7 +6,6 @@ import os
 import unittest
 import json
 
-from tests.context import easycov # pylint: disable=unused-import
 from easycov.diff_mapper import DiffMapper
 from .test_helpers import BaseTestCase
 

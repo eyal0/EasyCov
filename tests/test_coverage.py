@@ -5,7 +5,6 @@ from __future__ import division
 import os
 import unittest
 
-from tests.context import easycov # pylint: disable=unused-import
 from easycov.coverage import Coverage, Hits
 from .test_helpers import BaseTestCase
 
