@@ -241,9 +241,9 @@ def check_coverage(diff_stats):
         else:
           newly_uncovered += count
       else:
-        if float(target_hit) > float(source_hit):
+        if target_hit > source_hit:
           coverage_increased += count
-        elif float(target_hit) < float(source_hit):
+        elif target_hit < source_hit:
           coverage_decreased += count
   maybe_print("Lines with coverage increased: %d" % coverage_increased, 1)
   maybe_print("Lines with coverage decreased: %d" % coverage_decreased, 1)
