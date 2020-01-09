@@ -148,5 +148,37 @@ class CoverageTests(BaseTestCase):
       data = json_file.read()
       self.assertEqual(Coverage.from_json(data).get_ratio(), 73/86)
 
+class HitsTests(unittest.TestCase):
+  """Test Hits class."""
+  def test_inequalities(self):
+    """Test gt, lt, etc."""
+    self.assertNotEqual(Hits(1, 2), Hits(2, 4))
+
+    self.assertTrue(Hits(1, 2) > Hits(1, 3))
+    self.assertTrue(Hits(4, 8) > Hits(1, 3))
+    self.assertTrue(Hits(1, 3) < Hits(1, 2))
+    self.assertTrue(Hits(1, 3) < Hits(4, 8))
+
+    self.assertFalse(Hits(1, 2) < Hits(1, 3))
+    self.assertFalse(Hits(4, 8) < Hits(1, 3))
+    self.assertFalse(Hits(1, 3) > Hits(1, 2))
+    self.assertFalse(Hits(1, 3) > Hits(4, 8))
+
+    self.assertTrue(Hits(1, 2) >= Hits(1, 3))
+    self.assertTrue(Hits(4, 8) >= Hits(1, 3))
+    self.assertTrue(Hits(1, 3) <= Hits(1, 2))
+    self.assertTrue(Hits(1, 3) <= Hits(4, 8))
+
+    self.assertFalse(Hits(1, 2) <= Hits(1, 3))
+    self.assertFalse(Hits(4, 8) <= Hits(1, 3))
+    self.assertFalse(Hits(1, 3) >= Hits(1, 2))
+    self.assertFalse(Hits(1, 3) >= Hits(4, 8))
+
+    self.assertFalse(Hits(2, 4) == Hits(1, 2))
+    self.assertTrue(Hits(2, 4) >= Hits(1, 2))
+    self.assertTrue(Hits(2, 4) <= Hits(1, 2))
+    self.assertFalse(Hits(2, 4) > Hits(1, 2))
+    self.assertFalse(Hits(2, 4) < Hits(1, 2))
+
 if __name__ == '__main__':
   unittest.main()
