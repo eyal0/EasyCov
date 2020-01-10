@@ -48,7 +48,7 @@ class Hits(namedtuple("Hits", ["hits", "total"])):
   @staticmethod
   def from_iter(iterable):
     """Take the first two values from the iterable to make a Hits."""
-    return Hits(*[iterable[x] for x in xrange(2)])
+    return Hits(*[iterable[x] for x in range(2)])
 
 class Coverage(object):
   """Coverage represents a coverage report of many files."""
@@ -97,8 +97,8 @@ class Coverage(object):
           coverage[filename][line_number] = {}
         coverage[filename][line_number][branch_number] = taken
     # Now clean up all the branch coverage from dicts to Hits.
-    for _, file_coverage in coverage.iteritems():
-      for line_number, line_coverage in file_coverage.iteritems():
+    for _, file_coverage in coverage.items():
+      for line_number, line_coverage in file_coverage.items():
         if isinstance(line_coverage, dict):
           file_coverage[line_number] = Hits(sum(bool(x) for x in line_coverage.values()),
                                             len(line_coverage))
@@ -157,7 +157,7 @@ class Coverage(object):
     coverage = defaultdict(lambda: defaultdict(lambda: None), json_in['coverage'])
     for filename in coverage:
       # Don't use iterkeys because we are modifying the dictionary.
-      for line_number in coverage[filename].keys():
+      for line_number in list(coverage[filename].keys()):
         coverage[filename][int(line_number)] = Hits.from_iter(coverage[filename].pop(line_number))
     return Coverage(coverage, version)
 
@@ -201,21 +201,21 @@ class Coverage(object):
     Then for each file:
       filename in ascii followed by a null
       number_of_lines in the filename as a string followed by a null
-      bits_per_line as a single byte, never more than 255
+      bits_per_line as a string followed by a null
       Then for each line from 0 to number_of_lines-1:
         The hit value from 0 to 1 encoded into the right number of bits.
     """
     result = bytearray()
-    result += self._version + b"\0"
+    result += self._version.encode('utf-8') + b"\0"
     for filename in sorted(self._coverage.keys()):
-      result += filename + b"\0"
-      number_of_lines = max(self._coverage[filename].iterkeys())+1
-      result += str(number_of_lines) + "\0"
+      result += filename.encode('utf-8') + b"\0"
+      number_of_lines = max(self._coverage[filename].keys())+1
+      result += str(number_of_lines).encode('utf-8') + b"\0"
       #hits is the bit-encoded value of the fraction.
       hits = [self._value_to_bits(self._coverage[filename].get(line_number, None))
-              for line_number in xrange(number_of_lines)]
+              for line_number in range(number_of_lines)]
       bits_per_line = int(math.ceil(math.log(max(hits)+1, 2)))
-      result += chr(bits_per_line)
+      result += str(bits_per_line).encode('utf-8') + b"\0"
       hit_bits = ""
       for hit in hits:
         new_val = bin(hit)[2:]
@@ -223,8 +223,8 @@ class Coverage(object):
         hit_bits += new_val
       if len(hit_bits) % 8 != 0:
         hit_bits += '0' * (8 - len(hit_bits) % 8)
-      for i in xrange(0, len(hit_bits), 8):
-        result += chr(int(hit_bits[i:i+8], 2))
+      for i in range(0, len(hit_bits), 8):
+        result += bytes([int(hit_bits[i:i+8], 2)])
     return result
 
   @staticmethod
@@ -237,7 +237,7 @@ class Coverage(object):
   def from_binary(bin_coverage):
     """Reads the coverage from the binary format described in to_binary."""
     pos = 0
-    version = bytearray()
+    version = str()
     while bin_coverage[pos] != 0:
       version += chr(bin_coverage[pos])
       pos += 1
@@ -249,14 +249,21 @@ class Coverage(object):
         filename += chr(bin_coverage[pos])
         pos += 1
       pos += 1
-      number_of_lines = bytearray()
+
+      number_of_lines = str()
       while bin_coverage[pos] != 0:
         number_of_lines += chr(bin_coverage[pos])
         pos += 1
       pos += 1
       number_of_lines = int(number_of_lines)
-      bits_per_line = bin_coverage[pos]
+
+      bits_per_line = str()
+      while bin_coverage[pos] != 0:
+        bits_per_line += chr(bin_coverage[pos])
+        pos += 1
       pos += 1
+      bits_per_line = int(bits_per_line)
+
       total_bits = number_of_lines * bits_per_line
       total_bytes = (total_bits + 7) // 8
       hit_bytes = bin_coverage[pos:pos+total_bytes]
@@ -279,10 +286,10 @@ class Coverage(object):
       return False
     if sorted(self._coverage.keys()) != sorted(other._coverage.keys()):
       return False
-    for filename in self._coverage.iterkeys():
+    for filename in self._coverage.keys():
       if sorted(self._coverage[filename].keys()) != sorted(other._coverage[filename].keys()):
         return False
-      for line_number in self._coverage[filename].iterkeys():
+      for line_number in self._coverage[filename].keys():
         if self._coverage[filename][line_number] != other._coverage[filename][line_number]:
           return False
     return True
@@ -295,11 +302,11 @@ class Coverage(object):
 
   def __iadd__(self, other):
     # pylint: disable=protected-access
-    for filename, file_coverage in other._coverage.iteritems():
+    for filename, file_coverage in other._coverage.items():
       if filename not in self._coverage:
         self._coverage[filename] = deepcopy(file_coverage)
         continue
-      for line, hit in file_coverage.iteritems():
+      for line, hit in file_coverage.items():
         if line not in self._coverage[filename]:
           self._coverage[filename][line] = deepcopy(hit)
           continue
@@ -352,8 +359,8 @@ class Coverage(object):
     """Returns the coverage ratio, from 1 to 1."""
     actual = 0
     expected = 0
-    for _, file_coverage in self._coverage.iteritems():
-      for _, hit in file_coverage.iteritems():
+    for _, file_coverage in self._coverage.items():
+      for _, hit in file_coverage.items():
         expected += 1
         actual += float(hit)
     return 1 if expected == 0 else actual / expected

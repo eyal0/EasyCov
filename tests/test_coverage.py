@@ -74,6 +74,7 @@ class CoverageTests(BaseTestCase):
     """Test roundtrip with xml and root_dir and binary."""
     path = os.path.dirname(os.path.realpath(__file__))
     result = Coverage.from_xml(os.path.join(path, "coverage.xml"), "/foo")
+    print(result.to_binary())
     roundtrip = Coverage.from_binary(result.to_binary())
     self.assertEqual(roundtrip, result)
 
@@ -135,8 +136,8 @@ class CoverageTests(BaseTestCase):
     actual = None
     expected = Coverage._bits_to_value(Coverage._value_to_bits(actual)) # pylint: disable=protected-access
     self.assertEqual(actual, expected)
-    for denom in xrange(1, 10):
-      for numer in xrange(denom+1):
+    for denom in range(1, 10):
+      for numer in range(denom+1):
         expected = Hits(numer, denom)
         actual = Coverage._bits_to_value(Coverage._value_to_bits(expected)) # pylint: disable=protected-access
         self.assertEqual(actual, expected)
