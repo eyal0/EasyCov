@@ -58,6 +58,7 @@ jobs:
       run: |
         pip install --user wheel
         pip install --user pylint
+        pip install --user pytest
         pip install --user .
         pylint easycov tests *.py
     - name: Collect coverage
@@ -65,7 +66,7 @@ jobs:
         pip install --user coverage
         hash -r
         coverage erase
-        coverage run --branch --source . -m unittest discover
+        coverage run --branch --source . -m pytest
         coverage xml
     - name: Coverage
       uses: EasyCov/EasyCov@master

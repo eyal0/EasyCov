@@ -2,30 +2,14 @@
 """Test coverage.py"""
 
 from __future__ import division
-import difflib
 import os
 import unittest
 
-from tests.context import easycov # pylint: disable=unused-import
 from easycov.coverage import Coverage, Hits
+from .test_helpers import BaseTestCase
 
-class CoverageTests(unittest.TestCase):
+class CoverageTests(BaseTestCase):
   """Test Coverage class."""
-  def compare_lines(self, actual_lines, expected_lines, filename):
-    """Helper for comparing lines.
-
-    Outputs a unified diff.
-    """
-    self.assertEqual(actual_lines,
-                     expected_lines,
-                     "\n\n" + "\n".join(
-                         difflib.unified_diff(
-                             expected_lines,
-                             actual_lines,
-                             os.path.relpath(filename),
-                             os.path.relpath(filename),
-                             lineterm="")))
-
   def test_from_lcov(self):
     """Test Coverage.from_lcov(file)."""
     path = os.path.dirname(os.path.realpath(__file__))
@@ -43,6 +27,18 @@ class CoverageTests(unittest.TestCase):
         os.path.join(path, "one-lcov.info"),
         "/home/runner/work/pcb2gcode/pcb2gcode")
     expected_file = os.path.join(path, "one-lcov.info.json")
+    with open(expected_file) as expected:
+      expected_lines = expected.read().splitlines() # No newlines
+      actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
+      self.compare_lines(actual_lines, expected_lines, expected_file)
+
+  def test_from_lcov_with_branch(self):
+    """Test Coverage.from_lcov(file, root_dir)."""
+    path = os.path.dirname(os.path.realpath(__file__))
+    result = Coverage.from_lcov(
+        os.path.join(path, "branch-lcov.info"),
+        "/home/runner/work/pcb2gcode/pcb2gcode")
+    expected_file = os.path.join(path, "branch-lcov.info.json")
     with open(expected_file) as expected:
       expected_lines = expected.read().splitlines() # No newlines
       actual_lines = result.to_json(indent=2, sort_keys=True).splitlines()
@@ -99,7 +95,7 @@ class CoverageTests(unittest.TestCase):
       self.compare_lines(roundtrip.splitlines(), data.splitlines(),
                          os.path.join(path, "pcb2gcode-lcov.info.json"))
 
-  def test_roundtrip_lcov_with_root_json(self):
+  def test_roundtrip_lcov_root_json(self):
     """Test roundtrip with lcov and root_dir and json."""
     path = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(path, "one-lcov.info.json"), 'r') as json_file:
@@ -151,6 +147,38 @@ class CoverageTests(unittest.TestCase):
     with open(os.path.join(path, "coverage.xml.json"), 'r') as json_file:
       data = json_file.read()
       self.assertEqual(Coverage.from_json(data).get_ratio(), 73/86)
+
+class HitsTests(unittest.TestCase):
+  """Test Hits class."""
+  def test_inequalities(self):
+    """Test gt, lt, etc."""
+    self.assertNotEqual(Hits(1, 2), Hits(2, 4))
+
+    self.assertTrue(Hits(1, 2) > Hits(1, 3))
+    self.assertTrue(Hits(4, 8) > Hits(1, 3))
+    self.assertTrue(Hits(1, 3) < Hits(1, 2))
+    self.assertTrue(Hits(1, 3) < Hits(4, 8))
+
+    self.assertFalse(Hits(1, 2) < Hits(1, 3))
+    self.assertFalse(Hits(4, 8) < Hits(1, 3))
+    self.assertFalse(Hits(1, 3) > Hits(1, 2))
+    self.assertFalse(Hits(1, 3) > Hits(4, 8))
+
+    self.assertTrue(Hits(1, 2) >= Hits(1, 3))
+    self.assertTrue(Hits(4, 8) >= Hits(1, 3))
+    self.assertTrue(Hits(1, 3) <= Hits(1, 2))
+    self.assertTrue(Hits(1, 3) <= Hits(4, 8))
+
+    self.assertFalse(Hits(1, 2) <= Hits(1, 3))
+    self.assertFalse(Hits(4, 8) <= Hits(1, 3))
+    self.assertFalse(Hits(1, 3) >= Hits(1, 2))
+    self.assertFalse(Hits(1, 3) >= Hits(4, 8))
+
+    self.assertFalse(Hits(2, 4) == Hits(1, 2))
+    self.assertTrue(Hits(2, 4) >= Hits(1, 2))
+    self.assertTrue(Hits(2, 4) <= Hits(1, 2))
+    self.assertFalse(Hits(2, 4) > Hits(1, 2))
+    self.assertFalse(Hits(2, 4) < Hits(1, 2))
 
 if __name__ == '__main__':
   unittest.main()

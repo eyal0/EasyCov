@@ -17,18 +17,25 @@ import colorama
 from easycov.coverage import Coverage
 from easycov.diff_mapper import DiffMapper
 
-def maybe_print(text, level):
+def maybe_print(text, level, prefix=""):
   """Print a string only if the verbosity is high enough."""
   verbosity = int(os.getenv('INPUT_VERBOSITY'))
-  if level <= verbosity:
-    print(text)
+  if level > verbosity:
+    return
+  if prefix:
+    text = "\n".join(prefix + x for x in text.splitlines())
+  print(text)
+
+def maybe_debug(text, level):
+  """Like maybe_print but with the debug coloring."""
+  maybe_print(text, level, "[debug]")
 
 def execute(cmd, check=True):
   """Run cmd, printing the command as it is run.
 
   Returns the result.  If check is True, raise an exception on errors.
   """
-  maybe_print("[command]" + cmd, 2)
+  maybe_print(cmd, 2, "[command]")
   try:
     output = check_output(shlex.split(cmd), stderr=STDOUT)
     if output:
@@ -43,7 +50,7 @@ def execute(cmd, check=True):
 
 def git_clone(repo_url, github_token, target_dir):
   """Clone a repo into the target_dir."""
-  maybe_print("[command]Cloning branch.", 1)
+  maybe_print("Cloning branch.", 1, "[command]")
   clone_url = repo_url.replace('https://', 'https://x-access-token:' + github_token + "@")
   execute("git init %s" % (target_dir))
   execute("git -C %s remote add origin %s" % (target_dir, clone_url))
@@ -74,7 +81,7 @@ def collect_coverage():
     root_dir = os.path.join(os.getenv('GITHUB_WORKSPACE'), root_dir)
     root_dir = os.path.abspath(root_dir)
     root_dir = translate_docker_path(root_dir)
-  maybe_print("[command]Collecting coverage.", 1)
+  maybe_print("Collecting coverage.", 1, "[command]")
   xml_coverage = os.getenv('INPUT_XML-COVERAGE')
   if xml_coverage:
     for xml_filename in xml_coverage.split(" "):
@@ -95,13 +102,13 @@ def write_coverage_bin_gz(coverage):
 
 def do_push():
   """Process push events."""
-  maybe_print("[command]Detected Push Event.", 1)
+  maybe_print("Detected Push Event.", 1, "[command]")
   write_coverage_bin_gz(collect_coverage())
   return True
 
 def color_diff(path, base_sha, change_sha):
   """git giff the base_sha to change_sha in the path, colorizing the output."""
-  diff = execute("git -C %s diff --color=never %s %s" %
+  diff = execute("git -C %s diff --color %s %s" %
                  (path, base_sha, change_sha))
   diff_so_fancy = Popen(['diff-so-fancy'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
   output, stderr = diff_so_fancy.communicate(input=diff)
@@ -124,12 +131,12 @@ def highlight_coverage_line(fancy_line):
   and green background for 1.  The rest have yellow backgrounds.
   """
   ansi_code = r"(?:\x1B\[[0-9;]*m)"
-  regex = r"""(?x)                                  # Verbose
+  regex = r"""(?x)                                # Verbose
             ^(?P<style>{ansi_code}*)              # The leading style
              (?P<numer>\d(?:{ansi_code}|\d)*)     # Numerator
              /                                    # Fraction slash
              (?P<denom>\d(?:{ansi_code}|\d)*)     # Denominator
-             (?P<end> .*)$                        # Rest of string
+             (?P<end>\ .*)$                       # Rest of string
            """.format(
                ansi_code=ansi_code
            )
@@ -194,19 +201,22 @@ class ChecksHTMLParser(HTMLParser, object):
     """Get the href of the coverage.bin.gz file."""
     return self._href
 
-def get_coverage_artifact(base_sha):
+def get_coverage_artifact(base_sha, github_token):
   """Search the artifacts of previous CI runs to find coverage.bin.gz.
 
   This returns the Coverage that was found.
   """
   checks_url = 'https://github.com/%s/commit/%s/checks' % (os.getenv('GITHUB_REPOSITORY'), base_sha)
-  checks_html = execute("wget -H -O - '%s'" % (checks_url))
+  checks_html = execute(
+      "wget --header 'Authorization: token %s' -H -O - '%s'" %
+      (github_token, checks_url))
   parser = ChecksHTMLParser()
   parser.feed(checks_html)
   if not parser.href():
     return None
   coverage_bin_gz_url = urlparse.urljoin(checks_url, parser.href())
-  execute("wget -H -O /tmp/base_coverage.bin.gz.zip '%s'" % (coverage_bin_gz_url))
+  execute("wget --header 'Authorization: token %s' -H -O /tmp/base_coverage.bin.gz.zip '%s'" %
+          (github_token, coverage_bin_gz_url))
   execute("mkdir -p /tmp/base_coverage")
   execute("unzip -d /tmp/base_coverage /tmp/base_coverage.bin.gz.zip")
   execute("gunzip /tmp/base_coverage/coverage.bin.gz/coverage.bin.gz")
@@ -234,9 +244,9 @@ def check_coverage(diff_stats):
         else:
           newly_uncovered += count
       else:
-        if float(target_hit) > float(source_hit):
+        if target_hit > source_hit:
           coverage_increased += count
-        elif float(target_hit) < float(source_hit):
+        elif target_hit < source_hit:
           coverage_decreased += count
   maybe_print("Lines with coverage increased: %d" % coverage_increased, 1)
   maybe_print("Lines with coverage decreased: %d" % coverage_decreased, 1)
@@ -244,11 +254,19 @@ def check_coverage(diff_stats):
   maybe_print("New lines without coverage: %d" % newly_uncovered, 1)
   return coverage_decreased == 0 and newly_uncovered == 0
 
+def remove_unmodified_files(git_cmd):
+  """git rm files that are not modified."""
+  tracked_files = execute(git_cmd + "ls-tree -r HEAD --name-only").splitlines()
+  modified_files = execute(git_cmd + "ls-files -m").splitlines()
+  for tracked_file in tracked_files:
+    if tracked_file not in modified_files:
+      execute(git_cmd + "rm '" + tracked_file + "'")
+
 def do_pull_request(github_token, github_event):
   """Process pull request events.
 
   Returns True if it all works and coverage didn't go down."""
-  maybe_print("[command]Detected Pull Request Event.", 1)
+  maybe_print("Detected Pull Request Event.", 1, "[command]")
   merge_coverage = collect_coverage()
   write_coverage_bin_gz(merge_coverage)
   pr_dir = "/tmp/pr"
@@ -267,7 +285,7 @@ def do_pull_request(github_token, github_event):
   # base_sha is the commit that we want to merge onto.
   base_sha = execute(git_cmd + ('rev-parse %s^' % (merge_sha))).strip()
 
-  base_coverage = get_coverage_artifact(base_sha)
+  base_coverage = get_coverage_artifact(base_sha, github_token)
   if not base_coverage:
     # Can't find the base coverage, maybe it expired or there was no push request?
     print("::error::Can't find the coverage for base sha %s" % (base_sha))
@@ -281,12 +299,14 @@ def do_pull_request(github_token, github_event):
 
   # Make an annotated version of the base.
   base_coverage.annotate(root_dir)
+  remove_unmodified_files(git_cmd)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_base_sha = execute(git_cmd + "rev-parse HEAD").strip()
 
   # Make an annotated version of the merge.
   execute(git_cmd + 'checkout %s' % (merge_sha))
   merge_coverage.annotate(root_dir)
+  remove_unmodified_files(git_cmd)
   execute(git_cmd + "commit -a --allow-empty -m annotated")
   annotated_merge_sha = execute(git_cmd + "rev-parse HEAD")
   maybe_print(
@@ -296,7 +316,7 @@ def do_pull_request(github_token, github_event):
                     pr_dir, annotated_base_sha, annotated_merge_sha).split("\n")),
       1)
   diff_stats = get_diff_stats(pr_dir, base_sha, base_coverage, merge_sha, merge_coverage)
-  maybe_print(diff_stats, 2)
+  maybe_debug(str(diff_stats), 2)
   if not check_coverage(diff_stats):
     print("::error::Coverage is decreased")
     return False

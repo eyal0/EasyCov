@@ -33,16 +33,18 @@ class Hits(namedtuple("Hits", ["hits", "total"])):
   """
   def __float__(self):
     return self.hits / self.total
-  def __new__(cls, hits=0, total=1):
-    return super(Hits, cls).__new__(cls, hits, total)
-  def __sub__(self, other):
-    return float(self) - float(other)
   def __eq__(self, other):
     return isinstance(other, Hits) and self.hits == other.hits and self.total == other.total
-  def __cmp__(self, other):
-    return cmp(float(self), float(other))
   def __ne__(self, other):
     return not self == other
+  def __gt__(self, other):
+    return self.hits * other.total > self.total * other.hits
+  def __lt__(self, other):
+    return not self >= other
+  def __ge__(self, other):
+    return self.hits * other.total >= self.total * other.hits
+  def __le__(self, other):
+    return not self > other
   @staticmethod
   def from_iter(iterable):
     """Take the first two values from the iterable to make a Hits."""
@@ -52,7 +54,7 @@ class Coverage(object):
   """Coverage represents a coverage report of many files."""
 
   def __init__(self, coverage=None, version=None):
-    self._coverage = coverage or defaultdict(lambda: defaultdict(Hits))
+    self._coverage = coverage or defaultdict(lambda: defaultdict(lambda: None))
     self._version = version or pkg_resources.require("EasyCov")[0].version
 
   @staticmethod
@@ -73,14 +75,33 @@ class Coverage(object):
     root_dir prefix removed from them
     """
     json_cov = lcovparse.lcovparse(current_file.read())
-    coverage = defaultdict(lambda: defaultdict(Hits))
+    coverage = defaultdict(lambda: defaultdict(lambda: None))
     for file_coverage in json_cov:
+      filename = relative_filename(file_coverage['file'], root_dir)
       for line in file_coverage['lines']:
-        filename = relative_filename(file_coverage['file'], root_dir)
-        current_hits = coverage[filename][int(line['line'])]
-        coverage[filename][int(line['line'])] = max(
-            current_hits,
-            min(int(line['hit']), 0))
+        line_number = int(line['line'])
+        coverage[filename][line_number] = max(
+            coverage[filename][line_number] or Hits(-1, 0),
+            Hits(1 if int(line['hit']) else 0, 1))
+      # Now we go through the branches, which can override the line coverage.
+      # For now, we'll write them each as an array.  That's how we'll recognize
+      # what has already been recorded as branch coverage.  At the end, we'll
+      # convert all arrays to Hits.
+      for branch in file_coverage['branches']:
+        taken = branch['taken']
+        line_number = branch['line']
+        branch_number = branch['branch']
+        if (line_number not in coverage[filename] or
+            not isinstance(coverage[filename][line_number], dict)):
+          # Previously had line coverage or nothing.  Create a dict.
+          coverage[filename][line_number] = {}
+        coverage[filename][line_number][branch_number] = taken
+    # Now clean up all the branch coverage from dicts to Hits.
+    for _, file_coverage in coverage.iteritems():
+      for line_number, line_coverage in file_coverage.iteritems():
+        if isinstance(line_coverage, dict):
+          file_coverage[line_number] = Hits(sum(bool(x) for x in line_coverage.values()),
+                                            len(line_coverage))
     return Coverage(coverage)
 
   @staticmethod
@@ -105,7 +126,7 @@ class Coverage(object):
     for source in root.iterfind('./sources/source'):
       source_dir = source.text
 
-    coverage = defaultdict(lambda: defaultdict(Hits))
+    coverage = defaultdict(lambda: defaultdict(lambda: None))
     for class_ in root.iterfind('./packages/package/classes/class'):
       filename = os.path.join(source_dir, class_.get('filename'))
       filename = relative_filename(filename, root_dir)
@@ -114,13 +135,12 @@ class Coverage(object):
           # This is a branch line
           condition_coverage = line.get('condition-coverage')
           matches = re.match(r'\d+%\s+\((\d+)/(\d+)\)', condition_coverage)
-          coverage[filename][int(line.get('number'))] = max(
-              coverage[filename][int(line.get('number'))],
-              Hits(int(matches.group(1)), int(matches.group(2))))
+          new_hits = Hits(int(matches.group(1)), int(matches.group(2)))
         else:
-          coverage[filename][int(line.get('number'))] = max(
-              coverage[filename][int(line.get('number'))],
-              Hits(int(line.get('hits', 0)), 1))
+          new_hits = Hits(int(line.get('hits', 0)), 1)
+        coverage[filename][int(line.get('number'))] = max(
+            coverage[filename][int(line.get('number'))] or Hits(-1, 0),
+            new_hits)
     return Coverage(coverage)
 
   def to_json(self, *args, **kwargs):
@@ -134,7 +154,7 @@ class Coverage(object):
     """Reads coverage from a json string and returns a new Coverage object."""
     json_in = json.loads(json_string)
     version = json_in['version']
-    coverage = defaultdict(lambda: defaultdict(Hits), json_in['coverage'])
+    coverage = defaultdict(lambda: defaultdict(lambda: None), json_in['coverage'])
     for filename in coverage:
       # Don't use iterkeys because we are modifying the dictionary.
       for line_number in coverage[filename].keys():
@@ -222,7 +242,7 @@ class Coverage(object):
       version += chr(bin_coverage[pos])
       pos += 1
     pos += 1
-    coverage = defaultdict(lambda: defaultdict(Hits))
+    coverage = defaultdict(lambda: defaultdict(lambda: None))
     while pos < len(bin_coverage):
       filename = ""
       while bin_coverage[pos] != 0:
@@ -284,7 +304,7 @@ class Coverage(object):
           self._coverage[filename][line] = deepcopy(hit)
           continue
         self._coverage[filename][line] = max(
-            self._coverage[filename][line],
+            self._coverage[filename][line] or Hits(-1, 0),
             hit)
     return self
 
