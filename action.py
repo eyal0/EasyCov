@@ -201,19 +201,22 @@ class ChecksHTMLParser(HTMLParser, object):
     """Get the href of the coverage.bin.gz file."""
     return self._href
 
-def get_coverage_artifact(base_sha):
+def get_coverage_artifact(base_sha, github_token):
   """Search the artifacts of previous CI runs to find coverage.bin.gz.
 
   This returns the Coverage that was found.
   """
   checks_url = 'https://github.com/%s/commit/%s/checks' % (os.getenv('GITHUB_REPOSITORY'), base_sha)
-  checks_html = execute("wget -H -O - '%s'" % (checks_url))
+  checks_html = execute(
+      "wget --header 'Authorization: token %s' -H -O - '%s'" %
+      (github_token, checks_url))
   parser = ChecksHTMLParser()
   parser.feed(checks_html)
   if not parser.href():
     return None
   coverage_bin_gz_url = urlparse.urljoin(checks_url, parser.href())
-  execute("wget -H -O /tmp/base_coverage.bin.gz.zip '%s'" % (coverage_bin_gz_url))
+  execute("wget --header 'Authorization: token %s' -H -O /tmp/base_coverage.bin.gz.zip '%s'" %
+          (github_token, coverage_bin_gz_url))
   execute("mkdir -p /tmp/base_coverage")
   execute("unzip -d /tmp/base_coverage /tmp/base_coverage.bin.gz.zip")
   execute("gunzip /tmp/base_coverage/coverage.bin.gz/coverage.bin.gz")
@@ -282,7 +285,7 @@ def do_pull_request(github_token, github_event):
   # base_sha is the commit that we want to merge onto.
   base_sha = execute(git_cmd + ('rev-parse %s^' % (merge_sha))).strip()
 
-  base_coverage = get_coverage_artifact(base_sha)
+  base_coverage = get_coverage_artifact(base_sha, github_token)
   if not base_coverage:
     # Can't find the base coverage, maybe it expired or there was no push request?
     print("::error::Can't find the coverage for base sha %s" % (base_sha))
